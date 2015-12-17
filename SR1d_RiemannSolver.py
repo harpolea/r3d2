@@ -86,18 +86,26 @@ for i in range(len(xi)):
 
     q[i, :] = compute_q(gamma, w[i, :])
 
-subplot(1,3,1)
-plt.plot(x, w[:, 0])
-plt.xlabel('x')
-plt.ylabel('\rho')
-subplot(1,3,2)
-plt.plot(x, w[:, 1])
-plt.xlabel('x')
-plt.ylabel('v')
-subplot(1,3,3)
-plt.plot(x, q[:, 3])
-plt.xlabel('x')
-plt.ylabel('p')
+
+# plotting
+plt.clf()
+plt.rc("font", size=12)
+fig, axes = plt.subplots(nrows=1, ncols=3, num=1)
+
+ax = axes.flat[0]
+ax.plot(x, w[:, 0])
+ax.xlabel('$x$')
+ax.ylabel('$\rho$')
+
+ax = axes.flat[1]
+ax.plot(x, w[:, 1])
+ax.xlabel('$x$')
+ax.ylabel('$v$')
+
+ax = axes.flat[2]
+ax.plot(x, q[:, 3])
+ax.xlabel('$x$')
+ax.ylabel('$p$')
 
 ## Sharper plot
 
@@ -130,8 +138,8 @@ if ((wave_speeds[1] > xi_left) and (wave_speeds[1] < xi_right)):
     if (wave_speeds[1] > wave_speeds[0] + 1.e-10):
         xi = [xi, np.linspace(xi(end), wave_speeds[1], rarefaction_pts)]
         for i in range(100):
-           w = SR1d_Rarefaction(gamma, xi(end+i-rarefaction_pts), q_left, 1.)
-           q = [q, compute_q(gamma, w)]
+            w = SR1d_Rarefaction(gamma, xi(end+i-rarefaction_pts), q_left, 1.)
+            q = [q, compute_q(gamma, w)]
 
     else:
         xi = [xi, wave_speeds[1]]
@@ -163,18 +171,23 @@ if ((wave_speeds[4] > xi_right) and wave_speeds[4] > wave_speeds[3] + 1.e-10):
         w = SR1d_Rarefaction(gamma, xi(end+i-rarefaction_pts), q_right, -1.)
         q = [q, compute_q(gamma, w)]
 
-xi = [xi, xi_right]
+# plotting
 x = xi * t_end + 0.5
-q = [q, q_right]
-subplot(1,3,1)
-plt.plot(x, q[:, 0], 'bx-')
-plt.xlabel('x')
-plt.ylabel('\rho')
-subplot(1,3,2)
-plt.plot(x, q[:, 1], 'bx-')
-plt.xlabel('x')
-plt.ylabel('v')
-subplot(1,3,3)
-plt.plot(x, q[:, 3], 'bx-')
-plt.xlabel('x')
-plt.ylabel('p')
+x_right = xi_right * t_end + 0.5
+
+fig, axes = plt.subplots(nrows=1, ncols=3, num=1)
+
+ax = axes.flat[0]
+ax.plot(x, q[:, 0], 'bx', x_right, q_right[:, 0], 'k-')
+ax.xlabel('$x$')
+ax.ylabel('$\rho$')
+
+ax = axes.flat[1]
+ax.plot(x, q[:, 1], 'bx', x_right, q_right[:, 1], 'k-')
+ax.xlabel('$x$')
+ax.ylabel('$v$')
+
+ax = axes.flat[2]
+ax.plot(x, q[:, 3], 'bx', x_right, q_right[:, 3], 'k-')
+ax.xlabel('$x$')
+ax.ylabel('$p$')
