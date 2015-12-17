@@ -45,6 +45,26 @@ class State():
         self.rho, self.v, self.eps)
         return s
 
+class RP():
+    """
+    This is a more general Riemann Problem class.
+    
+    Allows for different EOSs on both sides (as required for burning problems).
+    Uses the State class.
+    """
+    
+    def __init__(self, state_l, state_r):
+        """
+        Constructor
+        """
+        self.state_l = state_l
+        self.state_r = state_r
+        
+        self.p_star = self.find_pstar()
+        self.state_star_l = self.get_state(self.state_l, self.p_star, -1)
+        self.state_star_r = self.get_state(self.state_r, self.p_star, +1)
+        self.wave_speeds = self.get_wave_speeds()
+
 class SR1d():
 
     def __init__(self, t_end, w_l, w_r, gamma=5./3.):
