@@ -38,7 +38,9 @@ class State():
         self.W_lorentz, self.h, self.cs])
     
     def _repr_latex_(self):
-        s = r"$\begin{{pmatrix}} \rho \\ v \\ \epsilon \end{{pmatrix}}_{{{}}} = ".format(self.label)
+        s = r"$\begin{{pmatrix}} \rho \\ v \\ \epsilon \end{{pmatrix}}"
+        if self.label:        
+            s += r"_{{{}}} = ".format(self.label)
         s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}$".format(\
         self.rho, self.v, self.eps)
         return s
