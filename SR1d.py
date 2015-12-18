@@ -6,7 +6,7 @@ class SR1d():
 
     def __init__(self, t_end, w_l, w_r, gamma=5./3.):
         """
-        Constructor
+        Constructor, initialises variables and the full left and right states given the primitive variables.
         """
         self.t_end = t_end
         self.gamma = gamma
@@ -28,8 +28,10 @@ class SR1d():
 
     def compute_state(self, w):
         """
-        Convert from the basic primitive variables w = (rho, v, eps) to the full
-        set q = (rho, v, eps, p, W, h, cs^2)
+        Convert from the basic primitive variables
+            w = (rho, v, eps)
+        to the full set
+            q = (rho, v, eps, p, W, h, cs^2)
         """
         rho, v, eps = w
 
@@ -209,9 +211,10 @@ class SR1d():
         else:
             print('Right wave is a rarefaction, speeds ({}, {}).'.format(wave_speeds[3], wave_speeds[4]))
 
-
         xi = self.xi
         w = self.w
+
+        # solve riemann problem
         for i in range(len(xi)):
 
             if (xi[i] < wave_speeds[0]):
@@ -230,6 +233,7 @@ class SR1d():
             self.q[i, :] = self.compute_state(self.w[i, :])
 
 
+        # calculate sharper solution
         rarefaction_pts = 100
 
         xi_left = -0.5 / self.t_end
@@ -238,8 +242,9 @@ class SR1d():
         w = self.w_sharper
         q = self.q_sharper
         xi = self.xi_sharper
-
         xi = np.array([xi_left])
+
+        # solve riemann problem
         if (xi < wave_speeds[0]):
             w = w_left
         elif (xi < wave_speeds[1]):
@@ -309,7 +314,6 @@ class SR1d():
         plt.clf()
         plt.rc("font", size=12)
         plt.figure(num=1, figsize=(20,7), dpi=100, facecolor='w')
-        plt.show(block=False)
 
         w = self.w
         q = self.q
@@ -330,6 +334,8 @@ class SR1d():
         ax3.set_xlabel("$x$")
         ax3.set_ylabel("$p$")
 
+        # plot the sharper solution
+
         w = self.w_sharper
         q = self.q_sharper
         xi = self.xi_sharper
@@ -337,13 +343,14 @@ class SR1d():
         x = xi * self.t_end + 0.5
 
         ax.plot(x, q[:, 0], 'bx--')
-        ax2.plot(x, q[:, 1], 'bx--')
-        ax3.plot(x, q[:, 3], 'bx--')
+        ax2.plot(x, q[:, 1], 'rx--')
+        ax3.plot(x, q[:, 3], 'gx--')
 
         plt.tight_layout()
 
         if filename is not None:
             plt.savefig(filename)
+
         plt.show()
 
 
