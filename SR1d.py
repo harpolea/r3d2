@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import brentq, root
+from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
 def eos_gamma_law(gamma):
@@ -116,6 +117,8 @@ class Shock(Wave):
     """
     def __init__(self, q_known, p_star, lr_sign):
 
+        assert(q_known.p >= p_star)
+
         def shock_root(rho_eps):
             rho = rho_eps[0]
             eps = rho_eps[1]
@@ -132,7 +135,7 @@ class Shock(Wave):
             label = r"\star_l"
             self.name += r"_{\leftarrow}$"
         else:
-            label = r"\star_l"
+            label = r"\star_r"
             self.name += r"_{\rightarrow}$"
 
         if np.allclose(q_known.p, p_star):
@@ -174,24 +177,56 @@ class Rarefaction(Wave):
     """
     rarefaction wave
     """
-    def __init__(self, q_l, q_r):
+    def __init__(self, q_known, p_star, lr_sign):
 
-        Wave.__init__(self, q_l, q_r)
+        assert(q_known.p <= p_star)
+        
+        def rarefaction_dwdp(w, p):
+            dwdp = np.zeros_like(w)
+            rho, v, eps = w
+            cs = q_known.eos['cs_from_rho_eps'](rho, eps)
+            h = q_known.eos['h_from_rho_eps'](rho, eps)
+            W_lorentz = 1.0 / np.sqrt(1.0 - v**2)
+            dwdp[0] = 1.0 / (h * cs**2)
+            dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs)
+            dwdp[2] = p / (rho**2 * h * cs**2)
+            return dwdp
 
-        # speed left of wave
-        self.v_l = (q_l.v - q_l.cs) / (1. - q_l.v * q_l.cs)
-        # speed right of wave
-        self.v_r = (q_r.v - q_r.cs) / (1. - q_r.v * q_r.cs)
+        self.name = r"${\cal R}"
+        if lr_sign == -1:
+            label = r"\star_l"
+            self.name += r"_{\leftarrow}$"
+        else:
+            label = r"\star_r"
+            self.name += r"_{\rightarrow}$"
+            
+        v_known = (q_known.v + lr_sign * q_known.cs) / \
+            (1.0 + lr_sign * q_known.v * q_known.cs )
 
-        self.state = self.get_state()
-
-
-
-    def get_state(self):
-        """
-        Compute the state inside a rarefaction wave.
-        """
-        pass
+        if np.allclose(q_known.p, p_star):
+            self.trivial = True
+            q_unknown = State(q_known.rho, q_known.v, q_known.eps, \
+            q_known.eos, label)
+            v_unknown = v_known
+        else:
+            self.trivial = False
+            w_all = odeint(rarefaction_dwdp, \
+            np.array([q_known.rho, q_known.v, q_known.eps]), [q_known.p, p_star])
+            q_unknown = State(w_all[-1, 0], w_all[-1, 1], w_all[-1, 1], label)
+            v_unknown = (q_unknown.v + lr_sign * q_unknown.cs) / \
+            (1.0 + lr_sign * q_unknown.v * q_unknown.cs )
+            
+        self.wave_speed = []
+        if lr_sign == -1:
+            self.q_l = q_known
+            self.q_r = q_unknown
+            self.wave_speed.append(v_known)
+            self.wave_speed.append(v_unknown)
+        else:
+            self.q_r = q_known
+            self.q_l = q_unknown
+            self.wave_speed.append(v_unknown)
+            self.wave_speed.append(v_known)
 
 
 class RP(object):
