@@ -68,7 +68,7 @@ def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
     return eos
 
 
-class State():
+class State(object):
 
     def __init__(self, rho, v, eps, eos, label=None):
         """
@@ -98,7 +98,7 @@ class State():
         self.rho, self.v, self.eps)
         return s
 
-class Wave():
+class Wave(object):
 
     def __init__(self, q_l, q_r):
         # initialise wave with left and right states and speed. This defaults to the behaviour of a contact wave.
@@ -165,7 +165,7 @@ class Rarefaction(Wave):
         pass
 
 
-class RP():
+class RP(object):
     """
     This is a more general Riemann Problem class.
 
@@ -306,7 +306,7 @@ class RP():
 
 
 
-class SR1d():
+class SR1d(object):
 
     def __init__(self, t_end, w_l, w_r, gamma=5./3.):
         """
