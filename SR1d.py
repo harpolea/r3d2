@@ -439,7 +439,7 @@ class SR1d(object):
         wave_speeds[2] = s_l[1]
 
         # Right wave
-        if (s_r.p > r.p): # Shock
+        if (p_s_r > p_r): # Shock
             w2 = W_r**2
             j = np.sqrt((p_s_r - p_r) / (h_r / rho_r - h_s_r / rho_s_r))
             a = j**2 + rho_r**2 * w2
@@ -513,27 +513,8 @@ class SR1d(object):
         else:
             print('Right wave is a rarefaction, speeds ({}, {}).'.format(wave_speeds[3], wave_speeds[4]))
 
-        xi = self.xi
-        w = np.zeros((len(self.xi), 3))
-
         # solve riemann problem
-        for i in range(len(xi)):
-
-            if (xi[i] < wave_speeds[0]):
-                w[i, :] = self.q_l[:3]
-            elif (xi[i] < wave_speeds[1]):
-                w[i, :] = self.rarefaction(xi[i], self.q_l, 1)
-            elif (xi[i] < wave_speeds[2]):
-                w[i, :] = w_star_l
-            elif (xi[i] < wave_speeds[3]):
-                w[i, :] = w_star_r
-            elif (xi[i] < wave_speeds[4]):
-                w[i, :] = self.rarefaction(xi[i], self.q_r, -1)
-            else:
-                w[i, :] = self.q_r[:3]
-
-            self.q[i, :] = self.compute_state(self.w[i, :])
-
+        
 
         # calculate sharper solution
         rarefaction_pts = 100
