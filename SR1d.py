@@ -28,7 +28,7 @@ def eos_multi_gamma_law(gamma, wave_i):
 
     return eos
 
-def eos_polytrope_law(gamma, rho_transition, k):
+def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
 
     def p_from_rho_eps(rho, eps):
         if (rho < rho_transition):
@@ -37,20 +37,22 @@ def eos_polytrope_law(gamma, rho_transition, k):
         else:
             p_cold = k[1] * rho**gamma[1]
             eps_cold = p_cold / rho / (gamma[1] - 1.) - \
-                k[1] * rho_transition^(gamma[1] - 1.) + \
-                k[0] * rho_transition^(gamma[0] - 1.)
+                k[1] * rho_transition**(gamma[1] - 1.) + \
+                k[0] * rho_transition**(gamma[0] - 1.)
+        
+        p_th = max(0.0, (gamma_th - 1.0) * rho * (eps - eps_cold))
 
         return p_cold + p_th
 
     def h_from_rho_eps(rho, eps):
         if (rho < rho_transition):
             p_cold = k[0] * rho**gamma[0]
-            eps_cold = p_cold / rho / (gamma[0] - 1.)
+            eps_cold = p_cold / rho / (gamma[0] - 1.0)
         else:
             p_cold = k[1] * rho**gamma[1]
-            eps_cold = p_cold / rho / (gamma[1] - 1.) - \
-                k[1] * rho_transition^(gamma[1] - 1.) + \
-                k[0] * rho_transition^(gamma[0] - 1.)
+            eps_cold = p_cold / rho / (gamma[1] - 1.0) - \
+                k[1] * rho_transition**(gamma[1] - 1.0) + \
+                k[0] * rho_transition**(gamma[0] - 1.0)
 
         p_th = max(0., (gamma_th - 1.) * rho * (eps - eps_cold))
 
@@ -182,7 +184,7 @@ class RP():
         self.p_star = self.find_pstar()
         self.state_star_l = self.get_state(self.state_l, self.p_star, eos_l, -1)
         self.state_star_r = self.get_state(self.state_r, self.p_star, eos_r, +1)
-        self.wave_speeds = self.get_wave_speeds(state_star_l, state_star_r)
+        self.wave_speeds = self.get_wave_speeds(self.state_star_l, self.state_star_r)
 
 
 
@@ -263,8 +265,8 @@ class RP():
             wave_speeds[:2] = shock.v_l
         else: # Rarefaction
             rarefaction = Rarefaction(l, s_l)
-            wavespeeds[0] = rarefaction.v_l
-            wavespeeds[1] = rarefaction.v_r
+            wave_speeds[0] = rarefaction.v_l
+            wave_speeds[1] = rarefaction.v_r
 
         # Contact
         wave_speeds[2] = s_l.v_l
@@ -276,8 +278,8 @@ class RP():
 
         else: # Rarefaction
             rarefaction = Rarefaction(s_r)
-            wavespeeds[3] = rarefaction.v_l
-            wavespeeds[4] = rarefaction.v_r
+            wave_speeds[3] = rarefaction.v_l
+            wave_speeds[4] = rarefaction.v_r
 
         return wave_speeds
 
@@ -617,17 +619,14 @@ class SR1d():
         x = self.x
 
         ax = plt.subplot(131)
-        ax.plot(x, w[:, 0], 'k-')
         ax.set_xlabel("$x$")
         ax.set_ylabel(r"$\rho$")
 
         ax2 = plt.subplot(132)
-        ax2.plot(x, w[:, 1], 'k-')
         ax2.set_xlabel("$x$")
         ax2.set_ylabel("$v$")
 
         ax3 = plt.subplot(133)
-        ax3.plot(x, q[:, 3], 'k-')
         ax3.set_xlabel("$x$")
         ax3.set_ylabel("$p$")
 
@@ -661,17 +660,14 @@ class SR1d():
         x = self.x
 
         ax = plt.subplot(131)
-        ax.plot(x, w[:, 0], 'k-')
         ax.set_xlabel("$x$")
         ax.set_ylabel(r"$\rho$")
 
         ax2 = plt.subplot(132)
-        ax2.plot(x, w[:, 1], 'k-')
         ax2.set_xlabel("$x$")
         ax2.set_ylabel("$v$")
 
         ax3 = plt.subplot(133)
-        ax3.plot(x, q[:, 3], 'k-')
         ax3.set_xlabel("$x$")
         ax3.set_ylabel("$p$")
 
