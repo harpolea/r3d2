@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.optimize import brentq
+from scipy.optimize import brentq, root
 import matplotlib.pyplot as plt
 
 def eos_gamma_law(gamma):
@@ -104,42 +104,71 @@ class Wave(object):
         # initialise wave with left and right states and speed. This defaults to the behaviour of a contact wave.
         self.q_l = q_l
         self.q_r = q_r
-        self.v_l = q_l.v
-        self.v_r = q_l.v
+        self.wave_speed = []
+        self.wave_speed.append(q_l.v)
+        self.wave_speed.append(q_r.v)
+        self.name = r"${\cal C}$"
 
 
 class Shock(Wave):
     """
     shock wave
     """
-    def __init__(self, q_l, q_r, lr_sign):
+    def __init__(self, q_known, p_star, lr_sign):
 
-        # wave going in opposite direction, switch states.
-        # FIXME: this is kind of hacky? Must be a better way
+        def shock_root(rho_eps):
+            rho = rho_eps[0]
+            eps = rho_eps[1]
+            p = q_known.eos['p_from_rho_eps'](rho, eps)
+            h = q_known.eos['h_from_rho_eps'](rho, eps)
+            dw = np.zeros_like(rho_eps)
+            dw[0] = p - q_known.p
+            dw[1] = (h**2 - q_known.h**2) - \
+            (h/q_known.rho + q_known.h/rho) * (p - q_known.p)
+            return dw
+
+        self.name = r"${\cal S}"
         if lr_sign == -1:
-            q_l, q_r = q_r, q_l
+            label = r"\star_l"
+            self.name += r"_{\leftarrow}$"
+        else:
+            label = r"\star_l"
+            self.name += r"_{\rightarrow}$"
 
-        Wave.__init__(self, q_l, q_r)
-
-        w2 = q_l.W_lorentz**2
-        j = -np.sqrt((q_l.p - q_r.p) / (q_r.h / q_r.rho - q_l.h / q_l.rho))
-        a = j**2 + q_r.rho**2 * w2
-        b = -q_r.v * q_r.rho**2 * w2
-
-        # speed of wave
-        self.v_l = (-b - j**2 * np.sqrt(1. + (q_r.rho / j)**2)) / a
-        self.v_r = self.v_l
-
-        # wave going in opposite direction, switch states back
+        if np.allclose(q_known.p, p_star):
+            self.trivial = True
+            q_unknown = State(q_known.rho, q_known.v, q_known.eps, \
+            q_known.eos, label)
+            v_shock = (q_known.v + lr_sign * q_known.cs) / \
+            (1.0 + lr_sign * q_known.v * q_known.cs )
+        else:
+            self.trivial = False
+            rho, eps = root(shock_root, np.array([q_known.rho, q_known.eps]))
+            dp = p_star - q_known.p
+            h = 1.0 + eps + p_star / rho
+            dh2 = h**2 - q_known.h**2
+            j = np.sqrt(-dp / (dh2 / dp - 2.0 * q_known.h / q_known.rho))
+            v_shock = (q_known.rho**2 * q_known.W_lorentz**2 * q_known.v + \
+            lr_sign * j**2 * \
+            np.sqrt(1.0 + q_known.rho**2 * q_known.W_lorentz**2 * (1.0 - q_known.v**2) / j**2)) / \
+            (q_known.rho**2 * q_known.W_lorentz**2 + j**2)
+            W_lorentz_shock = 1.0 / np.sqrt(1.0 - v_shock**2)
+            v = (q_known.h * q_known.W_lorentz * q_known.v + lr_sign * dp * W_lorentz_shock / j) / \
+            (q_known.h * q_known.W_lorentz + dp * (1.0 / q_known.rho / q_known.W_lorentz + \
+            lr_sign * q_known.v * W_lorentz_shock / j));
+            q_unknown = State(rho, v, eps, q_known.eos, label)
+                        
         if lr_sign == -1:
-            self.q_l, self.q_r = q_r, q_l
+            self.q_l = q_known
+            self.q_r = q_unknown
+        else:
+            self.q_r = q_known
+            self.q_l = q_unknown
 
+        self.wave_speed = []
+        self.wave_speed.append(v_shock)
+        self.wave_speed.append(v_shock)
 
-    def get_state(self):
-        """
-        Compute the state other side of the shock wave.
-        """
-        pass
 
 class Rarefaction(Wave):
     """
