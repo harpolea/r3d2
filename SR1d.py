@@ -3,20 +3,71 @@ from scipy.optimize import brentq
 import matplotlib.pyplot as plt
 
 def eos_gamma_law(gamma):
-    
+
     p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * eps
     h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps
     cs_from_rho_eps = lambda rho, eps : \
     np.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
-    
+
     eos = {'p_from_rho_eps' : p_from_rho_eps,
            'h_from_rho_eps' : h_from_rho_eps,
            'cs_from_rho_eps' : cs_from_rho_eps}
-    
+
     return eos
 
+def eos_multi_gamma_law(gamma, wave_i):
+
+    p_from_rho_eps = lambda rho, eps : (gamma[wave_i] - 1.0) * rho * eps
+    h_from_rho_eps = lambda rho, eps : 1.0 + gamma[wave_i] * eps
+    cs_from_rho_eps = lambda rho, eps : \
+    np.sqrt(gamma[wave_i] * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
+
+    eos = {'p_from_rho_eps' : p_from_rho_eps,
+           'h_from_rho_eps' : h_from_rho_eps,
+           'cs_from_rho_eps' : cs_from_rho_eps}
+
+    return eos
+
+def eos_polytrope_law(gamma, rho_transition, k):
+
+    def p_from_rho_eps(rho, eps):
+        if (rho < rho_transition):
+            p_cold = k[0] * rho**gamma[0]
+            eps_cold = p_cold / rho / (gamma[0] - 1.)
+        else:
+            p_cold = k[1] * rho**gamma[1]
+            eps_cold = p_cold / rho / (gamma[1] - 1.) - \
+                k[1] * rho_transition^(gamma[1] - 1.) + \
+                k[0] * rho_transition^(gamma[0] - 1.)
+
+        return p_cold + p_th
+
+    def h_from_rho_eps(rho, eps):
+        if (rho < rho_transition):
+            p_cold = k[0] * rho**gamma[0]
+            eps_cold = p_cold / rho / (gamma[0] - 1.)
+        else:
+            p_cold = k[1] * rho**gamma[1]
+            eps_cold = p_cold / rho / (gamma[1] - 1.) - \
+                k[1] * rho_transition^(gamma[1] - 1.) + \
+                k[0] * rho_transition^(gamma[0] - 1.)
+
+        p_th = max(0., (gamma_th - 1.) * rho * (eps - eps_cold))
+
+        return 1. + eps_cold + eps + (p_cold + p_th)/ rho
+
+    def cs_from_rho_eps(rho, eps):
+        return np.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
+
+    eos = {'p_from_rho_eps' : p_from_rho_eps,
+           'h_from_rho_eps' : h_from_rho_eps,
+           'cs_from_rho_eps' : cs_from_rho_eps}
+
+    return eos
+
+
 class State():
-    
+
     def __init__(self, rho, v, eps, eos, label=None):
         """
         Constructor
@@ -29,41 +80,229 @@ class State():
         self.h = eos['h_from_rho_eps'](rho, eps)
         self.cs = eos['cs_from_rho_eps'](rho, eps)
         self.label = label
-    
+
     def prim(self):
         return np.array([self.rho, self.v, self.eps])
-        
+
     def state(self):
         return np.array([self.rho, self.v, self.eps, self.p,\
         self.W_lorentz, self.h, self.cs])
-    
+
     def _repr_latex_(self):
         s = r"$\begin{{pmatrix}} \rho \\ v \\ \epsilon \end{{pmatrix}}"
-        if self.label:        
+        if self.label:
             s += r"_{{{}}} = ".format(self.label)
         s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}$".format(\
         self.rho, self.v, self.eps)
         return s
 
+class Wave():
+
+    def __init__(self, q_l, q_r):
+        # initialise wave with left and right states and speed. This defaults to the behaviour of a contact wave.
+        self.q_l = q_l
+        self.q_r = q_r
+        self.v_l = q_l.v
+        self.v_r = q_l.v
+
+
+class Shock(Wave):
+    """
+    shock wave
+    """
+    def __init__(self, q_l, q_r, lr_sign):
+
+        # wave going in opposite direction, switch states.
+        # FIXME: this is kind of hacky? Must be a better way
+        if lr_sign == -1:
+            q_l, q_r = q_r, q_l
+
+        Wave.__init__(self, q_l, q_r)
+
+        w2 = q_l.W_lorentz**2
+        j = -np.sqrt((q_l.p - q_r.p) / (q_r.h / q_r.rho - q_l.h / q_l.rho))
+        a = j**2 + q_r.rho**2 * w2
+        b = -q_r.v * q_r.rho**2 * w2
+
+        # speed of wave
+        self.v_l = (-b - j**2 * np.sqrt(1. + (q_r.rho / j)**2)) / a
+        self.v_r = self.v_l
+
+        # wave going in opposite direction, switch states back
+        if lr_sign == -1:
+            self.q_l, self.q_r = q_r, q_l
+
+
+    def get_state(self):
+        """
+        Compute the state other side of the shock wave.
+        """
+        pass
+
+class Rarefaction(Wave):
+    """
+    rarefaction wave
+    """
+    def __init__(self, q_l, q_r):
+
+        Wave.__init__(self, q_l, q_r)
+
+        # speed left of wave
+        self.v_l = (q_l.v - q_l.cs) / (1. - q_l.v * q_l.cs)
+        # speed right of wave
+        self.v_r = (q_r.v - q_r.cs) / (1. - q_r.v * q_r.cs)
+
+        self.state = self.get_state()
+
+
+
+    def get_state(self):
+        """
+        Compute the state inside a rarefaction wave.
+        """
+        pass
+
+
 class RP():
     """
     This is a more general Riemann Problem class.
-    
+
     Allows for different EOSs on both sides (as required for burning problems).
     Uses the State class.
     """
-    
-    def __init__(self, state_l, state_r):
+
+    def __init__(self, state_l, state_r, eos_l, eos_r, gamma=5./3.):
         """
         Constructor
         """
         self.state_l = state_l
         self.state_r = state_r
-        
+        self.gamma = gamma
+
         self.p_star = self.find_pstar()
-        self.state_star_l = self.get_state(self.state_l, self.p_star, -1)
-        self.state_star_r = self.get_state(self.state_r, self.p_star, +1)
-        self.wave_speeds = self.get_wave_speeds()
+        self.state_star_l = self.get_state(self.state_l, self.p_star, eos_l, -1)
+        self.state_star_r = self.get_state(self.state_r, self.p_star, eos_r, +1)
+        self.wave_speeds = self.get_wave_speeds(state_star_l, state_star_r)
+
+
+
+    def find_pstar(self, p_star_0=None):
+        """
+        Find the value of q_star that solves the Riemann problem.
+        """
+        pmin = min(self.state_l.p, self.state_r.p, p_star_0)
+        pmax = max(self.state_l.p, self.state_r.p, p_star_0)
+
+        def find_delta_v(p_s):
+
+            q_star_l = self.get_state(self.state_l.p, p_s, -1)
+            v_star_l = q_star_l.v
+            q_star_r = self.get_state(self.state_r.p, p_s, 1)
+            v_star_r = q_star_r.v
+
+            return v_star_l - v_star_r
+
+        return brentq(find_delta_v, 0.5*pmin, 2*pmax)
+
+    def get_state(self, state_known, p_star, eos, lr_sign):
+        """
+        Given the known state and the pressure the other side of the wave,
+        compute all the state information
+        """
+
+        if (p_star > state_known.p): # Shock wave
+
+            # Check the root of the quadratic
+            a = 1. + (self.gamma - 1.) * (state_known.p - p_star) / (self.gamma * p_star)
+            b = 1. - a
+            c = state_known.h * (state_known.p - p_star) / state_known.rho - state_known.h**2
+
+            if (c > b**2 / (4. * a)):
+                raise ValueError('Unphysical enthalpy')
+
+            # Find quantities across the wave
+            h_star = ( -b + np.sqrt( b**2 - 4. * a * c) ) / (2. * a)
+            rho_star = self.gamma * p_star / ( (self.gamma - 1.) * (h_star - 1.) )
+            eps_star = p_star / (rho_star * (self.gamma - 1.))
+            e_star = rho_star + p_star / (self.gamma - 1.)
+
+            v_12 = -lr_sign * \
+                np.sqrt( (p_star - state_known.p) * (e_star - state_known.eps) / \
+                ( (state_known.eps + p_star) * (e_star + state_known.p) ) )
+            v_star = (state_known.v - v_12) / (1. - state_known.v * v_12)
+
+        else: # Rarefaction wave
+
+            rho_star = state_known.rho * (p_star / state_known.p)**(1. / self.gamma)
+            eps_star = p_star / (rho_star * (self.gamma - 1.))
+            h_star = 1. + eps_star + p_star / rho_star
+            cs_star = np.sqrt(self.gamma * p_star / (h_star * rho_star))
+            sqgm1 = np.sqrt(self.gamma - 1.)
+            a = (1. + state_known.v) / (1. - state_known.v) * \
+                ( ( sqgm1 + state_known.cs ) / ( sqgm1 - state_known.cs ) * \
+                ( sqgm1 - cs_star  )  / ( sqgm1 + cs_star  ) )**(-lr_sign * \
+                2. / sqgm1)
+
+            v_star = (a - 1.) / (a + 1.)
+
+        return State(rho_star, v_star, eps_star, eos)
+
+    # FIXME: maybe instead of this, produce a 3-tuple of Waves (see next function)
+    def get_wave_speeds(self, s_l, s_r):
+        """
+        Calculate wave speeds given states
+        """
+        wave_speeds = np.zeros((5, 1))
+
+        l = self.state_l
+        r = self.state_r
+
+        # Left wave
+        if (s_l.p > l.p): # Shock
+            shock = Shock(l, s_l, -1)
+            wave_speeds[:2] = shock.v_l
+        else: # Rarefaction
+            rarefaction = Rarefaction(l, s_l)
+            wavespeeds[0] = rarefaction.v_l
+            wavespeeds[1] = rarefaction.v_r
+
+        # Contact
+        wave_speeds[2] = s_l.v_l
+
+        # Right wave
+        if (s_r.p > r.p): # Shock
+            shock = Shock(s_r, r, 1)
+            wave_speeds[3:] = shock.v_l
+
+        else: # Rarefaction
+            rarefaction = Rarefaction(s_r)
+            wavespeeds[3] = rarefaction.v_l
+            wavespeeds[4] = rarefaction.v_r
+
+        return wave_speeds
+
+    def get_waves(self, s_l, s_r):
+        """
+        Returns tuple of (left, contact, right) Waves given the left and right states.
+        """
+        l = self.state_l
+        r = self.state_r
+
+        # Left wave
+        if (s_l.p > l.p): # Shock
+            l_wave = Shock(l, s_l, -1)
+        else: # Rarefaction
+            l_wave = Rarefaction(l, s_l)
+
+        # Right wave
+        if (s_r.p > r.p): # Shock
+            r_wave = Shock(s_r, r, 1)
+        else: # Rarefaction
+            r_wave = Rarefaction(s_r)
+
+        return l_wave, Wave(s_l, s_r), r_wave
+
+
 
 class SR1d():
 
@@ -75,10 +314,8 @@ class SR1d():
         self.gamma = gamma
         self.x = np.linspace(0., 1.)
         self.xi = (self.x - 0.5) / t_end
-        self.w = np.zeros((len(self.x), 3))
         self.q = np.zeros((len(self.x), 7))
 
-        self.w_sharper = np.zeros((len(self.x), 3))
         self.q_sharper = np.zeros((len(self.x), 7))
         self.xi_sharper = self.xi
 
@@ -200,7 +437,7 @@ class SR1d():
         wave_speeds[2] = s_l[1]
 
         # Right wave
-        if (p_s_r > p_r): # Shock
+        if (s_r.p > r.p): # Shock
             w2 = W_r**2
             j = np.sqrt((p_s_r - p_r) / (h_r / rho_r - h_s_r / rho_s_r))
             a = j**2 + rho_r**2 * w2
@@ -275,7 +512,7 @@ class SR1d():
             print('Right wave is a rarefaction, speeds ({}, {}).'.format(wave_speeds[3], wave_speeds[4]))
 
         xi = self.xi
-        w = self.w
+        w = np.zeros((len(self.xi), 3))
 
         # solve riemann problem
         for i in range(len(xi)):
@@ -302,7 +539,6 @@ class SR1d():
         xi_left = -0.5 / self.t_end
         xi_right = 0.5 / self.t_end
 
-        w = self.w_sharper
         q = self.q_sharper
         xi = self.xi_sharper
         xi = np.array([xi_left])
@@ -364,7 +600,6 @@ class SR1d():
                 w = self.rarefaction(xi[-1+i-rarefaction_pts], self.q_r, -1.)
                 q = np.vstack((q, self.compute_state(w)))
 
-        self.w_sharper = w
         self.q_sharper = q
         self.xi_sharper = xi
 
@@ -378,7 +613,6 @@ class SR1d():
         plt.rc("font", size=12)
         plt.figure(num=1, figsize=(20,7), dpi=100, facecolor='w')
 
-        w = self.w
         q = self.q
         x = self.x
 
@@ -398,8 +632,6 @@ class SR1d():
         ax3.set_ylabel("$p$")
 
         # plot the sharper solution
-
-        w = self.w_sharper
         q = self.q_sharper
         xi = self.xi_sharper
 
@@ -416,6 +648,45 @@ class SR1d():
 
         plt.show()
 
+    def _repr_png_(self):
+        """
+        png plot of the density, speed and pressure.
+        """
+
+        plt.clf()
+        plt.rc("font", size=12)
+        plt.figure(num=1, figsize=(20,7), dpi=100, facecolor='w')
+
+        q = self.q
+        x = self.x
+
+        ax = plt.subplot(131)
+        ax.plot(x, w[:, 0], 'k-')
+        ax.set_xlabel("$x$")
+        ax.set_ylabel(r"$\rho$")
+
+        ax2 = plt.subplot(132)
+        ax2.plot(x, w[:, 1], 'k-')
+        ax2.set_xlabel("$x$")
+        ax2.set_ylabel("$v$")
+
+        ax3 = plt.subplot(133)
+        ax3.plot(x, q[:, 3], 'k-')
+        ax3.set_xlabel("$x$")
+        ax3.set_ylabel("$p$")
+
+        # plot the sharper solution
+        q = self.q_sharper
+        xi = self.xi_sharper
+
+        x = xi * self.t_end + 0.5
+
+        ax.plot(x, q[:, 0], 'bx--')
+        ax2.plot(x, q[:, 1], 'rx--')
+        ax3.plot(x, q[:, 3], 'gx--')
+
+        plt.tight_layout()
+        plt.show()
 
 
 if __name__ == "__main__":
