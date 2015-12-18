@@ -2,6 +2,69 @@ import numpy as np
 from scipy.optimize import brentq
 import matplotlib.pyplot as plt
 
+def eos_gamma_law(gamma):
+    
+    p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * eps
+    h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps
+    cs_from_rho_eps = lambda rho, eps : \
+    np.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
+    
+    eos = {'p_from_rho_eps' : p_from_rho_eps,
+           'h_from_rho_eps' : h_from_rho_eps,
+           'cs_from_rho_eps' : cs_from_rho_eps}
+    
+    return eos
+
+class State():
+    
+    def __init__(self, rho, v, eps, eos, label=None):
+        """
+        Constructor
+        """
+        self.rho = rho
+        self.v = v
+        self.eps = eps
+        self.W_lorentz = 1.0 / np.sqrt(1.0 - self.v**2)
+        self.p = eos['p_from_rho_eps'](rho, eps)
+        self.h = eos['h_from_rho_eps'](rho, eps)
+        self.cs = eos['cs_from_rho_eps'](rho, eps)
+        self.label = label
+    
+    def prim(self):
+        return np.array([self.rho, self.v, self.eps])
+        
+    def state(self):
+        return np.array([self.rho, self.v, self.eps, self.p,\
+        self.W_lorentz, self.h, self.cs])
+    
+    def _repr_latex_(self):
+        s = r"$\begin{{pmatrix}} \rho \\ v \\ \epsilon \end{{pmatrix}}"
+        if self.label:        
+            s += r"_{{{}}} = ".format(self.label)
+        s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}$".format(\
+        self.rho, self.v, self.eps)
+        return s
+
+class RP():
+    """
+    This is a more general Riemann Problem class.
+    
+    Allows for different EOSs on both sides (as required for burning problems).
+    Uses the State class.
+    """
+    
+    def __init__(self, state_l, state_r):
+        """
+        Constructor
+        """
+        self.state_l = state_l
+        self.state_r = state_r
+        
+        self.p_star = self.find_pstar()
+        self.state_star_l = self.get_state(self.state_l, self.p_star, -1)
+        self.state_star_r = self.get_state(self.state_r, self.p_star, +1)
+        self.wave_speeds = self.get_wave_speeds()
+
 class SR1d():
 
     def __init__(self, t_end, w_l, w_r, gamma=5./3.):
