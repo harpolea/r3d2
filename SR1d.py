@@ -110,23 +110,49 @@ class State(object):
 
 class Wave(object):
 
-    def __init__(self, q_l, q_r):
-        # initialise wave with left and right states and speed. This defaults to the behaviour of a contact wave.
-        self.q_l = q_l
-        self.q_r = q_r
-        self.wave_speed = []
-        self.wave_speed.append(q_l.v)
-        self.wave_speed.append(q_r.v)
-        self.name = r"${\cal C}$"
-
-
-class Shock(Wave):
-    """
-    shock wave
-    """
-    def __init__(self, q_known, p_star, lr_sign):
-
-        assert(q_known.p >= p_star)
+    def __init__(self, q_known, unknown_value, wavenumber):
+        """
+        Initialize a wave.
+        
+        There are two possibilities: the wave is linear (wavenumber = 1),
+        which is a contact, where the known value is the left state and the
+        unknown value the right state.
+        
+        The second possibility is that the wave is nonlinear (wavenumber = 0,2)
+        which is either a shock or a rarefaction, where the known value is the
+        left/right state (wavenumber = 0,2 respectively) and the unknown value
+        the pressure in the star state.
+        """
+        self.trivial = False
+        assert(wavenumber in [0, 1, 2], "wavenumber must be 0, 1, 2")
+        self.wavenumber = wavenumber
+        if self.wavenumber == 1:
+            assert(isinstance(unknown_value, State)), "unknown_value must " \
+            "be a State when wavenumber is 1"
+            self.q_l = q_known
+            self.q_r = unknown_value
+            assert(np.allclose(self.q_l.v, self.q_r.v), "For a contact, "\
+            "wavespeeds must match across the wave")
+            if np.allclose(self.q_l.state(), self.q_r.state()):
+                self.trivial = True
+            self.wave_speed = np.array([self.q_l.v, self.q_r.v])
+            self.name = r"${\cal C}$"
+        elif self.wavenumber == 0:
+            self.q_l = q_known
+            if (self.q_l.p > unknown_value):
+                self.solve_shock(q_known, unknown_value)
+            else:
+                self.solve_rarefaction(q_known, unknown_value)
+        else:
+            self.q_r = q_known
+            if (self.q_r.p > unknown_value):
+                self.solve_shock(q_known, unknown_value)
+            else:
+                self.solve_rarefaction(q_known, unknown_value)
+    
+    def solve_shock(self, q_known, p_star):
+        
+        lr_sign = self.wavenumber - 1
 
         def shock_root(rho_eps):
             rho = rho_eps[0]
@@ -140,7 +166,7 @@ class Shock(Wave):
             return dw
 
         self.name = r"${\cal S}"
-        if lr_sign == -1:
+        if self.wavenumber == 0:
             label = r"\star_l"
             self.name += r"_{\leftarrow}$"
         else:
@@ -154,7 +180,6 @@ class Shock(Wave):
             v_shock = (q_known.v + lr_sign * q_known.cs) / \
             (1.0 + lr_sign * q_known.v * q_known.cs )
         else:
-            self.trivial = False
             rho, eps = root(shock_root, np.array([q_known.rho, q_known.eps]))
             dp = p_star - q_known.p
             h = 1.0 + eps + p_star / rho
@@ -170,25 +195,17 @@ class Shock(Wave):
             lr_sign * q_known.v * W_lorentz_shock / j));
             q_unknown = State(rho, v, eps, q_known.eos, label)
                         
-        if lr_sign == -1:
-            self.q_l = q_known
+        if self.wavenumber == 0:
             self.q_r = q_unknown
         else:
-            self.q_r = q_known
             self.q_l = q_unknown
 
-        self.wave_speed = []
-        self.wave_speed.append(v_shock)
-        self.wave_speed.append(v_shock)
-
-
-class Rarefaction(Wave):
-    """
-    rarefaction wave
-    """
-    def __init__(self, q_known, p_star, lr_sign):
-
-        assert(q_known.p <= p_star)
+        self.wave_speed = np.array([v_shock, v_shock])
+        
+    
+    def solve_rarefaction(self, q_known, p_star):
+        
+        lr_sign = self.wavenumber - 1
         
         def rarefaction_dwdp(w, p):
             dwdp = np.zeros_like(w)
@@ -202,7 +219,7 @@ class Rarefaction(Wave):
             return dwdp
 
         self.name = r"${\cal R}"
-        if lr_sign == -1:
+        if self.wavenumber == 0:
             label = r"\star_l"
             self.name += r"_{\leftarrow}$"
         else:
@@ -218,7 +235,6 @@ class Rarefaction(Wave):
             q_known.eos, label)
             v_unknown = v_known
         else:
-            self.trivial = False
             w_all = odeint(rarefaction_dwdp, \
             np.array([q_known.rho, q_known.v, q_known.eps]), [q_known.p, p_star])
             q_unknown = State(w_all[-1, 0], w_all[-1, 1], w_all[-1, 1], label)
@@ -226,16 +242,12 @@ class Rarefaction(Wave):
             (1.0 + lr_sign * q_unknown.v * q_unknown.cs )
             
         self.wave_speed = []
-        if lr_sign == -1:
-            self.q_l = q_known
+        if self.wavenumber == 0:
             self.q_r = q_unknown
-            self.wave_speed.append(v_known)
-            self.wave_speed.append(v_unknown)
+            self.wave_speed = np.array([v_known, v_unknown])
         else:
-            self.q_r = q_known
             self.q_l = q_unknown
-            self.wave_speed.append(v_unknown)
-            self.wave_speed.append(v_known)
+            self.wave_speed = np.array([v_unknown, v_known])
 
 
 class RP(object):
