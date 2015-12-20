@@ -127,6 +127,7 @@ class Wave(object):
         assert(wavenumber in [0, 1, 2], "wavenumber must be 0, 1, 2")
         self.wavenumber = wavenumber
         if self.wavenumber == 1:
+            self.type = "Contact"
             assert(isinstance(unknown_value, State)), "unknown_value must " \
             "be a State when wavenumber is 1"
             self.q_l = q_known
@@ -152,6 +153,7 @@ class Wave(object):
     
     def solve_shock(self, q_known, p_star):
         
+        self.type = "Shock"
         lr_sign = self.wavenumber - 1
 
         def shock_root(rho_eps):
@@ -205,6 +207,7 @@ class Wave(object):
     
     def solve_rarefaction(self, q_known, p_star):
         
+        self.type = "Rarefaction"
         lr_sign = self.wavenumber - 1
         
         def rarefaction_dwdp(w, p):
@@ -249,6 +252,14 @@ class Wave(object):
             self.q_l = q_unknown
             self.wave_speed = np.array([v_unknown, v_known])
 
+    def _repr_latex_(self):
+        s = self.name
+        s += r": $\lambda^{{({})}}$".format(self.wavenumber)
+        if self.type == "Rarefaction":
+            s += r"$\in [{}, {}]$".format(self.wave_speed[0], self.wave_speed[1])
+        else:
+            s += r"$= {}$".format(self.wave_speed[0])
+        return s
 
 class RP(object):
     """
