@@ -169,10 +169,10 @@ class Wave(object):
 
         self.name = r"${\cal S}"
         if self.wavenumber == 0:
-            label = r"\star_l"
+            label = r"\star_L"
             self.name += r"_{\leftarrow}$"
         else:
-            label = r"\star_r"
+            label = r"\star_R"
             self.name += r"_{\rightarrow}$"
 
         if np.allclose(q_known.p, p_star):
@@ -224,10 +224,10 @@ class Wave(object):
 
         self.name = r"${\cal R}"
         if self.wavenumber == 0:
-            label = r"\star_l"
+            label = r"\star_L"
             self.name += r"_{\leftarrow}$"
         else:
-            label = r"\star_r"
+            label = r"\star_R"
             self.name += r"_{\rightarrow}$"
             
         v_known = (q_known.v + lr_sign * q_known.cs) / \
@@ -272,138 +272,53 @@ class RP(object):
     Uses the State class.
     """
 
-    def __init__(self, state_l, state_r, eos_l, eos_r, gamma=5./3.):
+    def __init__(self, state_l, state_r):
         """
         Constructor
         """
         self.state_l = state_l
         self.state_r = state_r
-        self.gamma = gamma
+        
+        def find_delta_v(p_star_guess):
+            
+            wave_l = Wave(self.state_l, p_star_guess, 0)
+            wave_r = Wave(self.state_r, p_star_guess, 2)
+            
+            return wave_l.q_r.v - wave_r.q_l.v
+        
+        pmin = min(self.state_l.p, self.state_r.p)
+        pmax = max(self.state_l.p, self.state_r.p)
+        while find_delta_v(pmin) * find_delta_v(pmax) > 0.0:
+            pmin /= 2.0
+            pmax *= 2.0
+            
+        self.p_star = brentq(find_delta_v, 0.5*pmin, 2.0*pmax)
+        wave_l = Wave(self.state_l, self.p_star, 0)
+        wave_r = Wave(self.state_r, self.p_star, 2)
+        self.state_star_l = wave_l.q_r
+        self.state_star_r = wave_r.q_l
+        self.waves = [wave_l, 
+                      Wave(self.state_star_l, self.state_star_r, 1), wave_r]
+        
 
-        self.p_star = self.find_pstar()
-        self.state_star_l = self.get_state(self.state_l, self.p_star, eos_l, -1)
-        self.state_star_r = self.get_state(self.state_r, self.p_star, eos_r, +1)
-        self.wave_speeds = self.get_wave_speeds(self.state_star_l, self.state_star_r)
-
-
-
-    def find_pstar(self, p_star_0=None):
-        """
-        Find the value of q_star that solves the Riemann problem.
-        """
-        pmin = min(self.state_l.p, self.state_r.p, p_star_0)
-        pmax = max(self.state_l.p, self.state_r.p, p_star_0)
-
-        def find_delta_v(p_s):
-
-            q_star_l = self.get_state(self.state_l.p, p_s, -1)
-            v_star_l = q_star_l.v
-            q_star_r = self.get_state(self.state_r.p, p_s, 1)
-            v_star_r = q_star_r.v
-
-            return v_star_l - v_star_r
-
-        return brentq(find_delta_v, 0.5*pmin, 2*pmax)
-
-    def get_state(self, state_known, p_star, eos, lr_sign):
-        """
-        Given the known state and the pressure the other side of the wave,
-        compute all the state information
-        """
-
-        if (p_star > state_known.p): # Shock wave
-
-            # Check the root of the quadratic
-            a = 1. + (self.gamma - 1.) * (state_known.p - p_star) / (self.gamma * p_star)
-            b = 1. - a
-            c = state_known.h * (state_known.p - p_star) / state_known.rho - state_known.h**2
-
-            if (c > b**2 / (4. * a)):
-                raise ValueError('Unphysical enthalpy')
-
-            # Find quantities across the wave
-            h_star = ( -b + np.sqrt( b**2 - 4. * a * c) ) / (2. * a)
-            rho_star = self.gamma * p_star / ( (self.gamma - 1.) * (h_star - 1.) )
-            eps_star = p_star / (rho_star * (self.gamma - 1.))
-            e_star = rho_star + p_star / (self.gamma - 1.)
-
-            v_12 = -lr_sign * \
-                np.sqrt( (p_star - state_known.p) * (e_star - state_known.eps) / \
-                ( (state_known.eps + p_star) * (e_star + state_known.p) ) )
-            v_star = (state_known.v - v_12) / (1. - state_known.v * v_12)
-
-        else: # Rarefaction wave
-
-            rho_star = state_known.rho * (p_star / state_known.p)**(1. / self.gamma)
-            eps_star = p_star / (rho_star * (self.gamma - 1.))
-            h_star = 1. + eps_star + p_star / rho_star
-            cs_star = np.sqrt(self.gamma * p_star / (h_star * rho_star))
-            sqgm1 = np.sqrt(self.gamma - 1.)
-            a = (1. + state_known.v) / (1. - state_known.v) * \
-                ( ( sqgm1 + state_known.cs ) / ( sqgm1 - state_known.cs ) * \
-                ( sqgm1 - cs_star  )  / ( sqgm1 + cs_star  ) )**(-lr_sign * \
-                2. / sqgm1)
-
-            v_star = (a - 1.) / (a + 1.)
-
-        return State(rho_star, v_star, eps_star, eos)
-
-    # FIXME: maybe instead of this, produce a 3-tuple of Waves (see next function)
-    def get_wave_speeds(self, s_l, s_r):
-        """
-        Calculate wave speeds given states
-        """
-        wave_speeds = np.zeros((5, 1))
-
-        l = self.state_l
-        r = self.state_r
-
-        # Left wave
-        if (s_l.p > l.p): # Shock
-            shock = Shock(l, s_l, -1)
-            wave_speeds[:2] = shock.v_l
-        else: # Rarefaction
-            rarefaction = Rarefaction(l, s_l)
-            wave_speeds[0] = rarefaction.v_l
-            wave_speeds[1] = rarefaction.v_r
-
-        # Contact
-        wave_speeds[2] = s_l.v_l
-
-        # Right wave
-        if (s_r.p > r.p): # Shock
-            shock = Shock(s_r, r, 1)
-            wave_speeds[3:] = shock.v_l
-
-        else: # Rarefaction
-            rarefaction = Rarefaction(s_r)
-            wave_speeds[3] = rarefaction.v_l
-            wave_speeds[4] = rarefaction.v_r
-
-        return wave_speeds
-
-    def get_waves(self, s_l, s_r):
-        """
-        Returns tuple of (left, contact, right) Waves given the left and right states.
-        """
-        l = self.state_l
-        r = self.state_r
-
-        # Left wave
-        if (s_l.p > l.p): # Shock
-            l_wave = Shock(l, s_l, -1)
-        else: # Rarefaction
-            l_wave = Rarefaction(l, s_l)
-
-        # Right wave
-        if (s_r.p > r.p): # Shock
-            r_wave = Shock(s_r, r, 1)
-        else: # Rarefaction
-            r_wave = Rarefaction(s_r)
-
-        return l_wave, Wave(s_l, s_r), r_wave
-
-
+    def _repr_latex_(self):
+        s = ""
+        for wave in self.waves:
+            s+= wave.name
+        s += r"$,\quad$"
+        for wave in self.waves:
+            s += wave._repr_latex_() + r"$\,$"
+        s += r"$,\quad$"
+        s += self.state_l._repr_latex_()
+        s += r"$,\quad$"
+        s += self.state_star_l._repr_latex_()
+        s += r"$,\quad$"
+        s += self.state_star_r._repr_latex_()
+        s += r"$,\quad$"
+        s += self.state_r._repr_latex_()
+        s += r"$,\quad$"
+        s += r"$p_* = {:.4f}$".format(self.p_star)
+        return s
 
 class SR1d(object):
 
