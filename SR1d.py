@@ -91,6 +91,15 @@ class State(object):
         return np.array([self.rho, self.v, self.eps, self.p,\
         self.W_lorentz, self.h, self.cs])
 
+    def wavespeed(self, wavenumber):
+        if wavenumber == 1:
+            return self.v
+        elif abs(wavenumber - 1) == 1:
+            s = wavenumber - 1
+            return (self.v + s * self.cs) / (1.0 + s * self.v * self.cs)
+        else:
+            raise NotImplementedError("wavenumber must be 0, 1, 2")
+
     def _repr_latex_(self):
         s = r"$\begin{{pmatrix}} \rho \\ v \\ \epsilon \end{{pmatrix}}"
         if self.label:
