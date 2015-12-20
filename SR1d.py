@@ -78,10 +78,11 @@ class State(object):
         self.rho = rho
         self.v = v
         self.eps = eps
+        self.eos = eos
         self.W_lorentz = 1.0 / np.sqrt(1.0 - self.v**2)
-        self.p = eos['p_from_rho_eps'](rho, eps)
-        self.h = eos['h_from_rho_eps'](rho, eps)
-        self.cs = eos['cs_from_rho_eps'](rho, eps)
+        self.p = self.eos['p_from_rho_eps'](rho, eps)
+        self.h = self.eos['h_from_rho_eps'](rho, eps)
+        self.cs = self.eos['cs_from_rho_eps'](rho, eps)
         self.label = label
 
     def prim(self):
@@ -101,7 +102,7 @@ class State(object):
             raise NotImplementedError("wavenumber must be 0, 1, 2")
 
     def _repr_latex_(self):
-        s = r"$\begin{{pmatrix}} \rho \\ v \\ \epsilon \end{{pmatrix}}"
+        s = r"$\begin{pmatrix} \rho \\ v \\ \epsilon \end{pmatrix}"
         if self.label:
             s += r"_{{{}}} = ".format(self.label)
         s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}$".format(\
@@ -124,7 +125,7 @@ class Wave(object):
         the pressure in the star state.
         """
         self.trivial = False
-        assert(wavenumber in [0, 1, 2], "wavenumber must be 0, 1, 2")
+        assert(wavenumber in [0, 1, 2]), "wavenumber must be 0, 1, 2"
         self.wavenumber = wavenumber
         if self.wavenumber == 1:
             self.type = "Contact"
@@ -132,8 +133,8 @@ class Wave(object):
             "be a State when wavenumber is 1"
             self.q_l = q_known
             self.q_r = unknown_value
-            assert(np.allclose(self.q_l.v, self.q_r.v), "For a contact, "\
-            "wavespeeds must match across the wave")
+            assert(np.allclose(self.q_l.v, self.q_r.v)), "For a contact, "\
+            "wavespeeds must match across the wave"
             if np.allclose(self.q_l.state(), self.q_r.state()):
                 self.trivial = True
             self.wave_speed = np.array([self.q_l.v, self.q_r.v])
@@ -157,14 +158,13 @@ class Wave(object):
         lr_sign = self.wavenumber - 1
 
         def shock_root(rho_eps):
-            rho = rho_eps[0]
-            eps = rho_eps[1]
+            rho, eps = rho_eps
             p = q_known.eos['p_from_rho_eps'](rho, eps)
             h = q_known.eos['h_from_rho_eps'](rho, eps)
             dw = np.zeros_like(rho_eps)
-            dw[0] = p - q_known.p
+            dw[0] = p_star - p
             dw[1] = (h**2 - q_known.h**2) - \
-            (h/q_known.rho + q_known.h/rho) * (p - q_known.p)
+            (h/rho + q_known.h/q_known.rho) * (p - q_known.p)
             return dw
 
         self.name = r"${\cal S}"
@@ -182,7 +182,8 @@ class Wave(object):
             v_shock = (q_known.v + lr_sign * q_known.cs) / \
             (1.0 + lr_sign * q_known.v * q_known.cs )
         else:
-            rho, eps = root(shock_root, np.array([q_known.rho, q_known.eps]))
+            rho_eps = root(shock_root, np.array([q_known.rho, q_known.eps]))
+            rho, eps = rho_eps.x
             dp = p_star - q_known.p
             h = 1.0 + eps + p_star / rho
             dh2 = h**2 - q_known.h**2
@@ -240,7 +241,8 @@ class Wave(object):
         else:
             w_all = odeint(rarefaction_dwdp, \
             np.array([q_known.rho, q_known.v, q_known.eps]), [q_known.p, p_star])
-            q_unknown = State(w_all[-1, 0], w_all[-1, 1], w_all[-1, 1], label)
+            q_unknown = State(w_all[-1, 0], w_all[-1, 1], w_all[-1, 1], 
+                              q_known.eos, label)
             v_unknown = (q_unknown.v + lr_sign * q_unknown.cs) / \
             (1.0 + lr_sign * q_unknown.v * q_unknown.cs )
             
@@ -256,9 +258,10 @@ class Wave(object):
         s = self.name
         s += r": $\lambda^{{({})}}$".format(self.wavenumber)
         if self.type == "Rarefaction":
-            s += r"$\in [{}, {}]$".format(self.wave_speed[0], self.wave_speed[1])
+            s += r"$\in [{:.4f}, {:.4f}]$".format(self.wave_speed[0], 
+                         self.wave_speed[1])
         else:
-            s += r"$= {}$".format(self.wave_speed[0])
+            s += r"$= {:.4f}$".format(self.wave_speed[0])
         return s
 
 class RP(object):
