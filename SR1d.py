@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import brentq, root
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
+from copy import deepcopy
 
 def eos_gamma_law(gamma):
 
@@ -140,14 +141,14 @@ class Wave(object):
             self.wave_speed = np.array([self.q_l.v, self.q_r.v])
             self.name = r"${\cal C}$"
         elif self.wavenumber == 0:
-            self.q_l = q_known
-            if (self.q_l.p > unknown_value):
+            self.q_l = deepcopy(q_known)
+            if (self.q_l.p < unknown_value):
                 self.solve_shock(q_known, unknown_value)
             else:
                 self.solve_rarefaction(q_known, unknown_value)
         else:
-            self.q_r = q_known
-            if (self.q_r.p > unknown_value):
+            self.q_r = deepcopy(q_known)
+            if (self.q_r.p < unknown_value):
                 self.solve_shock(q_known, unknown_value)
             else:
                 self.solve_rarefaction(q_known, unknown_value)
@@ -179,8 +180,7 @@ class Wave(object):
             self.trivial = True
             q_unknown = State(q_known.rho, q_known.v, q_known.eps, \
             q_known.eos, label)
-            v_shock = (q_known.v + lr_sign * q_known.cs) / \
-            (1.0 + lr_sign * q_known.v * q_known.cs )
+            v_shock = q_known.wavespeed(self.wavenumber)
         else:
             rho_eps = root(shock_root, np.array([q_known.rho, q_known.eps]))
             rho, eps = rho_eps.x
@@ -199,9 +199,9 @@ class Wave(object):
             q_unknown = State(rho, v, eps, q_known.eos, label)
                         
         if self.wavenumber == 0:
-            self.q_r = q_unknown
+            self.q_r = deepcopy(q_unknown)
         else:
-            self.q_l = q_unknown
+            self.q_l = deepcopy(q_unknown)
 
         self.wave_speed = np.array([v_shock, v_shock])
         
@@ -230,8 +230,7 @@ class Wave(object):
             label = r"\star_R"
             self.name += r"_{\rightarrow}$"
             
-        v_known = (q_known.v + lr_sign * q_known.cs) / \
-            (1.0 + lr_sign * q_known.v * q_known.cs )
+        v_known = q_known.wavespeed(self.wavenumber)
 
         if np.allclose(q_known.p, p_star):
             self.trivial = True
@@ -241,17 +240,16 @@ class Wave(object):
         else:
             w_all = odeint(rarefaction_dwdp, \
             np.array([q_known.rho, q_known.v, q_known.eps]), [q_known.p, p_star])
-            q_unknown = State(w_all[-1, 0], w_all[-1, 1], w_all[-1, 1], 
+            q_unknown = State(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2], 
                               q_known.eos, label)
-            v_unknown = (q_unknown.v + lr_sign * q_unknown.cs) / \
-            (1.0 + lr_sign * q_unknown.v * q_unknown.cs )
+            v_unknown = q_unknown.wavespeed(self.wavenumber)
             
         self.wave_speed = []
         if self.wavenumber == 0:
-            self.q_r = q_unknown
+            self.q_r = deepcopy(q_unknown)
             self.wave_speed = np.array([v_known, v_unknown])
         else:
-            self.q_l = q_unknown
+            self.q_l = deepcopy(q_unknown)
             self.wave_speed = np.array([v_unknown, v_known])
 
     def _repr_latex_(self):
