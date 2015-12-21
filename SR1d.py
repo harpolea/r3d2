@@ -4,72 +4,6 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 from copy import deepcopy
 
-def eos_gamma_law(gamma):
-
-    p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * eps
-    h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps
-    cs_from_rho_eps = lambda rho, eps : \
-    np.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
-
-    eos = {'p_from_rho_eps' : p_from_rho_eps,
-           'h_from_rho_eps' : h_from_rho_eps,
-           'cs_from_rho_eps' : cs_from_rho_eps}
-
-    return eos
-
-def eos_multi_gamma_law(gamma, wave_i):
-
-    p_from_rho_eps = lambda rho, eps : (gamma[wave_i] - 1.0) * rho * eps
-    h_from_rho_eps = lambda rho, eps : 1.0 + gamma[wave_i] * eps
-    cs_from_rho_eps = lambda rho, eps : \
-    np.sqrt(gamma[wave_i] * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
-
-    eos = {'p_from_rho_eps' : p_from_rho_eps,
-           'h_from_rho_eps' : h_from_rho_eps,
-           'cs_from_rho_eps' : cs_from_rho_eps}
-
-    return eos
-
-def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
-
-    def p_from_rho_eps(rho, eps):
-        if (rho < rho_transition):
-            p_cold = k[0] * rho**gamma[0]
-            eps_cold = p_cold / rho / (gamma[0] - 1.)
-        else:
-            p_cold = k[1] * rho**gamma[1]
-            eps_cold = p_cold / rho / (gamma[1] - 1.) - \
-                k[1] * rho_transition**(gamma[1] - 1.) + \
-                k[0] * rho_transition**(gamma[0] - 1.)
-        
-        p_th = max(0.0, (gamma_th - 1.0) * rho * (eps - eps_cold))
-
-        return p_cold + p_th
-
-    def h_from_rho_eps(rho, eps):
-        if (rho < rho_transition):
-            p_cold = k[0] * rho**gamma[0]
-            eps_cold = p_cold / rho / (gamma[0] - 1.0)
-        else:
-            p_cold = k[1] * rho**gamma[1]
-            eps_cold = p_cold / rho / (gamma[1] - 1.0) - \
-                k[1] * rho_transition**(gamma[1] - 1.0) + \
-                k[0] * rho_transition**(gamma[0] - 1.0)
-
-        p_th = max(0., (gamma_th - 1.) * rho * (eps - eps_cold))
-
-        return 1. + eps_cold + eps + (p_cold + p_th)/ rho
-
-    def cs_from_rho_eps(rho, eps):
-        return np.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
-
-    eos = {'p_from_rho_eps' : p_from_rho_eps,
-           'h_from_rho_eps' : h_from_rho_eps,
-           'cs_from_rho_eps' : cs_from_rho_eps}
-
-    return eos
-
-
 class State(object):
 
     def __init__(self, rho, v, eps, eos, label=None):
@@ -102,12 +36,16 @@ class State(object):
         else:
             raise NotImplementedError("wavenumber must be 0, 1, 2")
 
-    def _repr_latex_(self):
-        s = r"$\begin{pmatrix} \rho \\ v \\ \epsilon \end{pmatrix}"
+    def latex_string(self):
+        s = r"\begin{pmatrix} \rho \\ v \\ \epsilon \end{pmatrix}"
         if self.label:
             s += r"_{{{}}} = ".format(self.label)
-        s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}$".format(\
+        s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(\
         self.rho, self.v, self.eps)
+        return s
+
+    def _repr_latex_(self):
+        s = r"$" + self.latex_string() + r"$"
         return s
 
 class Wave(object):
@@ -139,7 +77,7 @@ class Wave(object):
             if np.allclose(self.q_l.state(), self.q_r.state()):
                 self.trivial = True
             self.wave_speed = np.array([self.q_l.v, self.q_r.v])
-            self.name = r"${\cal C}$"
+            self.name = r"{\cal C}"
         elif self.wavenumber == 0:
             self.q_l = deepcopy(q_known)
             if (self.q_l.p < unknown_value):
@@ -168,13 +106,13 @@ class Wave(object):
             (h/rho + q_known.h/q_known.rho) * (p - q_known.p)
             return dw
 
-        self.name = r"${\cal S}"
+        self.name = r"{\cal S}"
         if self.wavenumber == 0:
             label = r"\star_L"
-            self.name += r"_{\leftarrow}$"
+            self.name += r"_{\leftarrow}"
         else:
             label = r"\star_R"
-            self.name += r"_{\rightarrow}$"
+            self.name += r"_{\rightarrow}"
 
         if np.allclose(q_known.p, p_star):
             self.trivial = True
@@ -222,13 +160,13 @@ class Wave(object):
             dwdp[2] = p / (rho**2 * h * cs**2)
             return dwdp
 
-        self.name = r"${\cal R}"
+        self.name = r"{\cal R}"
         if self.wavenumber == 0:
             label = r"\star_L"
-            self.name += r"_{\leftarrow}$"
+            self.name += r"_{\leftarrow}"
         else:
             label = r"\star_R"
-            self.name += r"_{\rightarrow}$"
+            self.name += r"_{\rightarrow}"
             
         v_known = q_known.wavespeed(self.wavenumber)
 
@@ -252,14 +190,18 @@ class Wave(object):
             self.q_l = deepcopy(q_unknown)
             self.wave_speed = np.array([v_unknown, v_known])
 
-    def _repr_latex_(self):
+    def latex_string(self):
         s = self.name
-        s += r": $\lambda^{{({})}}$".format(self.wavenumber)
+        s += r": \lambda^{{({})}}".format(self.wavenumber)
         if self.type == "Rarefaction":
-            s += r"$\in [{:.4f}, {:.4f}]$".format(self.wave_speed[0], 
+            s += r"\in [{:.4f}, {:.4f}]".format(self.wave_speed[0], 
                          self.wave_speed[1])
         else:
-            s += r"$= {:.4f}$".format(self.wave_speed[0])
+            s += r"= {:.4f}".format(self.wave_speed[0])
+        return s
+
+    def _repr_latex_(self):
+        s = r"$" + self.latex_string() + r"$"
         return s
 
 class RP(object):
@@ -300,22 +242,17 @@ class RP(object):
         
 
     def _repr_latex_(self):
-        s = ""
+        s = r"$\begin{cases} "
         for wave in self.waves:
             s+= wave.name
-        s += r"$,\quad$"
+        s += r",\\ "
         for wave in self.waves:
-            s += wave._repr_latex_() + r"$\,$"
-        s += r"$,\quad$"
-        s += self.state_l._repr_latex_()
-        s += r"$,\quad$"
-        s += self.state_star_l._repr_latex_()
-        s += r"$,\quad$"
-        s += self.state_star_r._repr_latex_()
-        s += r"$,\quad$"
-        s += self.state_r._repr_latex_()
-        s += r"$,\quad$"
-        s += r"$p_* = {:.4f}$".format(self.p_star)
+            s += wave.latex_string() + r",\\ "
+        for state in self.state_l, self.state_star_l, self.state_star_r, self.state_r:
+            s += state.latex_string()
+            s += r",\\ "
+        s += r"p_* = {:.4f}".format(self.p_star)
+        s += r"\end{cases}$"
         return s
 
 class SR1d(object):
@@ -679,6 +616,8 @@ class SR1d(object):
 
 
 if __name__ == "__main__":
+
+    
 
     # initial data
     t_end = 0.4
