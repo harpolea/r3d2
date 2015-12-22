@@ -12,4 +12,4 @@ def test_eos_gamma_law():
     p = eos['p_from_rho_eps'](rho, eps)
     h = eos['h_from_rho_eps'](rho, eps)
     cs = eos['cs_from_rho_eps'](rho, eps)
-    assert_allclose([p, h, cs], [p_true, h_true, cs_true])
+    assert_allclose([p, h, cs], [p_true, h_true, cs_true], rtol=1e-8)
