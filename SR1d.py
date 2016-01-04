@@ -6,25 +6,26 @@ from copy import deepcopy
 
 class State(object):
 
-    def __init__(self, rho, v, eps, eos, label=None):
+    def __init__(self, rho, v, vt, eps, eos, label=None):
         """
         Constructor
         """
         self.rho = rho
         self.v = v
+        self.vt = vt
         self.eps = eps
         self.eos = eos
-        self.W_lorentz = 1.0 / np.sqrt(1.0 - self.v**2)
+        self.W_lorentz = 1.0 / np.sqrt(1.0 - self.v**2 - self.vt**2)
         self.p = self.eos['p_from_rho_eps'](rho, eps)
         self.h = self.eos['h_from_rho_eps'](rho, eps)
         self.cs = self.eos['cs_from_rho_eps'](rho, eps)
         self.label = label
 
     def prim(self):
-        return np.array([self.rho, self.v, self.eps])
+        return np.array([self.rho, self.v, self.vt, self.eps])
 
     def state(self):
-        return np.array([self.rho, self.v, self.eps, self.p,\
+        return np.array([self.rho, self.v, self.vt, self.eps, self.p,\
         self.W_lorentz, self.h, self.cs])
 
     def wavespeed(self, wavenumber):
@@ -32,16 +33,27 @@ class State(object):
             return self.v
         elif abs(wavenumber - 1) == 1:
             s = wavenumber - 1
-            return (self.v + s * self.cs) / (1.0 + s * self.v * self.cs)
+            term1 = self.v * (1.0 - self.cs**2)
+            term2 = (1.0 - self.v**2 - self.vt**2) * (1.0 - self.v**2 - 
+            self.vt**2 * self.cs**2)
+            term3 = 1.0 - (self.v**2 + self.vt**2) * self.cs**2
+            return (term1 + s * self.cs * np.sqrt(term2)) / term3
         else:
             raise NotImplementedError("wavenumber must be 0, 1, 2")
+            
+    def vt_from_known(self, rho, v, eps):
+        h = self.eos['h_from_rho_eps'](rho, eps)
+        vt = self.h * self.W_lorentz * self.vt
+        vt *= np.sqrt((1.0 - v**2)/
+        (h**2 + (self.h * self.W_lorentz * self.vt)**2))
+        return vt
 
     def latex_string(self):
-        s = r"\begin{pmatrix} \rho \\ v \\ \epsilon \end{pmatrix}"
+        s = r"\begin{pmatrix} \rho \\ v_x \\ v_t \\ \epsilon \end{pmatrix}"
         if self.label:
             s += r"_{{{}}} = ".format(self.label)
-        s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(\
-        self.rho, self.v, self.eps)
+        s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(\
+        self.rho, self.v, self.vt, self.eps)
         return s
 
     def _repr_latex_(self):
@@ -116,7 +128,7 @@ class Wave(object):
 
         if np.allclose(q_known.p, p_star):
             self.trivial = True
-            q_unknown = State(q_known.rho, q_known.v, q_known.eps, \
+            q_unknown = State(q_known.rho, q_known.v, q_known.vt, q_known.eps, 
             q_known.eos, label)
             v_shock = q_known.wavespeed(self.wavenumber)
         else:
@@ -133,8 +145,9 @@ class Wave(object):
             W_lorentz_shock = 1.0 / np.sqrt(1.0 - v_shock**2)
             v = (q_known.h * q_known.W_lorentz * q_known.v + lr_sign * dp * W_lorentz_shock / j) / \
             (q_known.h * q_known.W_lorentz + dp * (1.0 / q_known.rho / q_known.W_lorentz + \
-            lr_sign * q_known.v * W_lorentz_shock / j));
-            q_unknown = State(rho, v, eps, q_known.eos, label)
+            lr_sign * q_known.v * W_lorentz_shock / j))
+            vt = q_known.vt_from_known(rho, v, eps)
+            q_unknown = State(rho, v, vt, eps, q_known.eos, label)
                         
         if self.wavenumber == 0:
             self.q_r = deepcopy(q_unknown)
@@ -154,9 +167,13 @@ class Wave(object):
             rho, v, eps = w
             cs = q_known.eos['cs_from_rho_eps'](rho, eps)
             h = q_known.eos['h_from_rho_eps'](rho, eps)
-            W_lorentz = 1.0 / np.sqrt(1.0 - v**2)
+            vt = q_known.vt_from_known(rho, v, eps)
+            local_state = State(rho, v, vt, eps, q_known.eos)
+            W_lorentz = local_state.W_lorentz
+            xi = local_state.wavespeed(self.wavenumber)
+            g = vt**2 * (xi**2 - 1.0) / (1.0 - xi * v)**2
             dwdp[0] = 1.0 / (h * cs**2)
-            dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs)
+            dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / np.sqrt(1.0 + g)
             dwdp[2] = p / (rho**2 * h * cs**2)
             return dwdp
 
@@ -172,14 +189,15 @@ class Wave(object):
 
         if np.allclose(q_known.p, p_star):
             self.trivial = True
-            q_unknown = State(q_known.rho, q_known.v, q_known.eps, \
+            q_unknown = State(q_known.rho, q_known.v, q_known.vt, q_known.eps,
             q_known.eos, label)
             v_unknown = v_known
         else:
             w_all = odeint(rarefaction_dwdp, \
             np.array([q_known.rho, q_known.v, q_known.eps]), [q_known.p, p_star])
-            q_unknown = State(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2], 
-                              q_known.eos, label)
+            q_unknown = State(w_all[-1, 0], w_all[-1, 1], 
+                              q_known.vt_from_known(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2]),
+                              w_all[-1, 2], q_known.eos, label)
             v_unknown = q_unknown.wavespeed(self.wavenumber)
             
         self.wave_speed = []
