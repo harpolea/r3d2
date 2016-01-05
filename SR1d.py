@@ -270,16 +270,22 @@ class RP(object):
 
     def _repr_latex_(self):
         s = r"$\begin{cases} "
+        s += self.state_l.latex_string()
+        s += r",\\ "
+        s += self.state_r.latex_string()
+        s += r", \end{cases} \quad \implies \quad "
         for wave in self.waves:
             s+= wave.name
-        s += r",\\ "
-        for wave in self.waves:
+        s += r", \quad p_* = {:.4f}, \quad".format(self.p_star)
+        s += r"\begin{cases} "
+        for wave in self.waves[:-1]:
             s += wave.latex_string() + r",\\ "
-        for state in self.state_l, self.state_star_l, self.state_star_r, self.state_r:
-            s += state.latex_string()
-            s += r",\\ "
-        s += r"p_* = {:.4f}".format(self.p_star)
-        s += r"\end{cases}$"
+        s += self.waves[-1].latex_string()
+        s += r", \end{cases} \quad \begin{cases} "
+        s += self.state_star_l.latex_string()
+        s += r",\\ "
+        s += self.state_star_r.latex_string()
+        s += r". \end{cases}$"
         return s
 
 if __name__ == "__main__":
