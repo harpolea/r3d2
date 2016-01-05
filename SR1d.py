@@ -164,18 +164,26 @@ class Wave(object):
         lr_sign = self.wavenumber - 1
         
         def rarefaction_dwdp(w, p):
+            """
+            There is a tricky point here that needs investigation. If
+            the input p is used here, rather than local_state.p, then they
+            can diverge (when vt is significant) leading to overflows of g. By
+            using local_state we avoid the overflow, but it may mean the final
+            state is not very accurate. Even this isn't enough to tackle the
+            faster test bench 3 problem.
+            """
             dwdp = np.zeros_like(w)
             rho, v, eps = w
-            cs = q_known.eos['cs_from_rho_eps'](rho, eps)
-            h = q_known.eos['h_from_rho_eps'](rho, eps)
             vt = q_known.vt_from_known(rho, v, eps)
             local_state = State(rho, v, vt, eps, q_known.eos)
+            cs = local_state.cs
+            h = local_state.h
             W_lorentz = local_state.W_lorentz
             xi = local_state.wavespeed(self.wavenumber)
             g = vt**2 * (xi**2 - 1.0) / (1.0 - xi * v)**2
             dwdp[0] = 1.0 / (h * cs**2)
             dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / np.sqrt(1.0 + g)
-            dwdp[2] = p / (rho**2 * h * cs**2)
+            dwdp[2] = local_state.p / (rho**2 * h * cs**2)
             return dwdp
 
         self.name = r"{\cal R}"
@@ -251,7 +259,7 @@ class RP(object):
             pmin /= 2.0
             pmax *= 2.0
             
-        self.p_star = brentq(find_delta_v, 0.5*pmin, 2.0*pmax)
+        self.p_star = brentq(find_delta_v, 0.9*pmin, 1.1*pmax)
         wave_l = Wave(self.state_l, self.p_star, 0)
         wave_r = Wave(self.state_r, self.p_star, 2)
         self.state_star_l = wave_l.q_r
@@ -279,5 +287,7 @@ if __name__ == "__main__":
     eos = eos_defns.eos_gamma_law(5.0/3.0)
     w_left = State(1.0, 0.0, 0.0, 1.5, eos, label="L")
     w_right = State(0.125, 0.0, 0.0, 1.2, eos, label="R")
+    w_left = State(1.0, 0.0, 0.9, 0.015, eos, label="L")
+    w_right = State(1.0, 0.0, 0.9, 1500, eos, label="R")
     rp = RP(w_left, w_right)
     print(rp.p_star)
