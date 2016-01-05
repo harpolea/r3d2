@@ -87,6 +87,8 @@ class Wave(object):
             self.q_r = unknown_value
             assert(np.allclose(self.q_l.v, self.q_r.v)), "For a contact, "\
             "wavespeeds must match across the wave"
+            assert(np.allclose(self.q_l.p, self.q_r.p)), "For a contact, "\
+            "pressure must match across the wave"
             if np.allclose(self.q_l.state(), self.q_r.state()):
                 self.trivial = True
             self.wave_speed = np.array([self.q_l.v, self.q_r.v])
@@ -202,8 +204,9 @@ class Wave(object):
             q_known.eos, label)
             v_unknown = v_known
         else:
-            w_all = odeint(rarefaction_dwdp, \
-            np.array([q_known.rho, q_known.v, q_known.eps]), [q_known.p, p_star])
+            w_all = odeint(rarefaction_dwdp, 
+                           np.array([q_known.rho, q_known.v, q_known.eps]), 
+                           [q_known.p, p_star], rtol = 1e-12, atol = 1e-10)
             q_unknown = State(w_all[-1, 0], w_all[-1, 1], 
                               q_known.vt_from_known(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2]),
                               w_all[-1, 2], q_known.eos, label)
