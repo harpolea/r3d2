@@ -5,6 +5,9 @@ from copy import deepcopy
 
 import eos_defns
 
+from matplotlib import pyplot
+from IPython.core.pylabtools import print_figure
+
 class State(object):
 
     def __init__(self, rho, v, vt, eps, eos, label=None):
@@ -250,6 +253,11 @@ class RP(object):
         """
         Constructor
         """
+        
+        # Cache for plot
+        self._png_data = None
+        self._svg_data = None
+        
         self.state_l = state_l
         self.state_r = state_r
         
@@ -274,6 +282,36 @@ class RP(object):
         self.waves = [wave_l, 
                       Wave(self.state_star_l, self.state_star_r, 1), wave_r]
         
+    def _figure_data(self, format):
+        fig, ax = pyplot.subplots()
+        for w in self.waves[0], self.waves[2]:
+            if w.type == 'Rarefaction':
+                xi_end = np.linspace(w.wave_speed[0], w.wave_speed[1], 5)
+                ax.fill_between([0, xi_end[0], xi_end[-1], 0],
+                                [0, 1, 1, 0], color='k', alpha=0.1)
+                for xi in xi_end:
+                    ax.plot([0, xi], [0, 1], 'k-', linewidth=1)
+            else:
+                ax.plot([0, w.wave_speed[0]], [0, 1], 'k-', linewidth=3)
+        ax.plot([0, self.waves[1].wave_speed[0]], [0, 1], 'k--', linewidth=1)
+        ax.set_xlim(-1, 1)
+        ax.set_ylim(0, 1)
+        ax.set_xlabel(r"$x$")
+        ax.set_ylabel(r"$t$")
+        ax.set_title("Characteristics")
+        data = print_figure(fig, format)
+        pyplot.close(fig)
+        return data
+
+    def _repr_png_(self):
+        if self._png_data is None:
+            self._png_data = self._figure_data('png')
+        return self._png_data
+
+    def _repr_svg_(self):
+        if self._svg_data is None:
+            self._svg_data = self._figure_data('svg')
+        return self._svg_data
 
     def _repr_latex_(self):
         s = r"$\begin{cases} "
