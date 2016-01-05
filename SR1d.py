@@ -135,7 +135,10 @@ class Wave(object):
             q_known.eos, label)
             v_shock = q_known.wavespeed(self.wavenumber)
         else:
-            rho_eps = root(shock_root, np.array([q_known.rho, q_known.eps]))
+            rho_eps_guess_ratio = np.sqrt(p_star/q_known.p)
+            rho_eps_guess = np.array([rho_eps_guess_ratio*q_known.rho,
+                                      rho_eps_guess_ratio*q_known.rho])
+            rho_eps = root(shock_root, rho_eps_guess)
             rho, eps = rho_eps.x
             dp = p_star - q_known.p
             h = 1.0 + eps + p_star / rho
@@ -298,5 +301,7 @@ if __name__ == "__main__":
     w_right = State(0.125, 0.0, 0.0, 1.2, eos, label="R")
     w_left = State(1.0, 0.0, 0.9, 0.015, eos, label="L")
     w_right = State(1.0, 0.0, 0.9, 1500, eos, label="R")
+    w_left = State(10.0, 0.0, 0.0, 2.0, eos, label="L")
+    w_right = State(1.0, 0.0, 0.0, 1.5e-6, eos, label="R")
     rp = RP(w_left, w_right)
     print(rp.p_star)
