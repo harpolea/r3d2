@@ -109,4 +109,28 @@ def test_bench_4():
     assert_allclose(rp.waves[0].wave_speed, v_shock_ref, rtol=1e-5)
     assert_allclose(rp.waves[1].wave_speed, v_contact_ref, rtol=1e-5)
     assert_allclose(rp.p_star, p_star_ref, rtol=1e-4)
+
+def test_multi_gamma():
+    """
+    Test using different equations of state either side of the interface.
+    
+    This is essentially the strong test (Figure 3) of Millmore and Hawke
+    """
+    eos1 = eos_defns.eos_gamma_law(1.4)
+    eos2 = eos_defns.eos_gamma_law(1.67)
+    w_left = SR1d.State(10.2384, 0.9411, 0.0, 50.0/0.4/10.23841, eos1, label="L")
+    w_right = SR1d.State(0.1379, 0.0, 0.0, 1.0/0.1379/0.67, eos2, label="R")
+    rp = SR1d.RP(w_left, w_right)
+    v_shock_ref = 0.989670551306888
+    v_contact_ref = 0.949361020941429
+    v_raref_ref = [0.774348025484414, 0.804130593636139]
+    p_star_ref = 41.887171487985299
+    prim_star_l = [9.022178190552809, 0.949361020941429, 0.0, 11.606723621310707]
+    prim_star_r = [1.063740721273106, 0.949361020941430, 0.0, 58.771996925298758]
+    assert_allclose(rp.waves[0].wave_speed, v_raref_ref, rtol=1e-6)
+    assert_allclose(rp.waves[1].wave_speed, v_contact_ref, rtol=1e-6)
+    assert_allclose(rp.waves[2].wave_speed, v_shock_ref, rtol=1e-6)
+    assert_allclose(rp.p_star, p_star_ref, rtol=1e-6)
+    assert_allclose(rp.state_star_l.prim(), prim_star_l, rtol=1e-6)
+    assert_allclose(rp.state_star_r.prim(), prim_star_r, rtol=1e-6)
     
