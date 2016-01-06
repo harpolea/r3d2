@@ -7,23 +7,20 @@ import SR1d
 import numpy as np
 from scipy.optimize import brentq
 
-def find_left(q_r, eos, M=1.):
+def find_left(q_r, M=1.):
     """
     Finds the left wave for a given Mach number and initial right state.
-
-    It can take arbitrary equation of state.
 
     Returns the left hand state and speed of the shock wave.
     """
 
-    rho_r = q_r.rho
-    eps_r = q_r.eps
-    p_r = eos['p_from_rho_eps'](rho_r, eps_r)
-    c_s = eos['cs_from_rho_eps'](rho_r, eps_r)
+    p_r = q_r.p
+    c_s = q_r.cs
 
     print('c_s = {}'.format(c_s))
 
-    # Limits for p_star guess. If M < 1, this should be less than the rhs pressure;
+    # Limits for p_star guess.
+    # If M < 1, this should be less than the rhs pressure;
     # if M > 1, should be higher
     if M < 1.:
         p_star_lims = [1.e-5 * p_r, p_r]
@@ -73,6 +70,6 @@ if __name__ == "__main__":
     # initialise right state
     q_r = SR1d.State(rho_r, v_r, vt_r, eps_r, eos, label="R")
 
-    q_l, v_s = find_left(q_r, eos, M=10.)
-    print('left state [rho,  v,  vt,  eps] =  {}'.format(q_l.prim()))
+    q_l, v_s = find_left(q_r, M=10.)
+    print('left state [rho,  v,  vt,  eps] = {}'.format(q_l.prim()))
     print('wave speed = {}'.format(v_s))
