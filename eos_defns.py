@@ -10,10 +10,12 @@ def eos_gamma_law(gamma):
     h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps
     cs_from_rho_eps = lambda rho, eps : \
     np.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
+    h_from_rho_p = lambda rho, p : 1.0 + gamma / (gamma - 1.0) * p / rho
 
     eos = {'p_from_rho_eps' : p_from_rho_eps,
            'h_from_rho_eps' : h_from_rho_eps,
-           'cs_from_rho_eps' : cs_from_rho_eps}
+           'cs_from_rho_eps' : cs_from_rho_eps,
+           'h_from_rho_p' : h_from_rho_p}
 
     return eos
 
@@ -50,9 +52,25 @@ def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
     def cs_from_rho_eps(rho, eps):
         return np.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
 
+    def h_from_rho_p(rho, p):
+        if (rho < rho_transition):
+            p_cold = k[0] * rho**gamma[0]
+            eps_cold = p_cold / rho / (gamma[0] - 1.0)
+        else:
+            p_cold = k[1] * rho**gamma[1]
+            eps_cold = p_cold / rho / (gamma[1] - 1.0) - \
+                k[1] * rho_transition**(gamma[1] - 1.0) + \
+                k[0] * rho_transition**(gamma[0] - 1.0)
+        
+        p_th = max(0.0, p - p_cold)
+        eps= 0.0 * p_th #FIXME
+        
+        return 1.0 + eps_cold + eps + p / rho
+
     eos = {'p_from_rho_eps' : p_from_rho_eps,
            'h_from_rho_eps' : h_from_rho_eps,
-           'cs_from_rho_eps' : cs_from_rho_eps}
+           'cs_from_rho_eps' : cs_from_rho_eps,
+           'h_from_rho_p' : h_from_rho_p}
 
     return eos
 

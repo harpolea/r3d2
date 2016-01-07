@@ -123,6 +123,11 @@ class Wave(object):
             dw[1] = (h**2 - q_known.h**2) - \
             (h/rho + q_known.h/q_known.rho) * (p - q_known.p)
             return dw
+            
+        def shock_root_rho(rho):
+            h = q_known.eos['h_from_rho_p'](rho, p_star)
+            return (h**2 - q_known.h**2) - \
+            (h/rho + q_known.h/q_known.rho) * (p_star - q_known.p)
 
         self.name = r"{\cal S}"
         if self.wavenumber == 0:
