@@ -201,30 +201,6 @@ class Wave(object):
     def solve_rarefaction(self, q_known, p_star):
         
         self.type = "Rarefaction"
-#        lr_sign = self.wavenumber - 1
-        
-#        def rarefaction_dwdp(w, p):
-#            """
-#            There is a tricky point here that needs investigation. If
-#            the input p is used here, rather than local_state.p, then they
-#            can diverge (when vt is significant) leading to overflows of g. By
-#            using local_state we avoid the overflow, but it may mean the final
-#            state is not very accurate. Even this isn't enough to tackle the
-#            faster test bench 3 problem.
-#            """
-#            dwdp = np.zeros_like(w)
-#            rho, v, eps = w
-#            vt = q_known.vt_from_known(rho, v, eps)
-#            local_state = State(rho, v, vt, eps, q_known.eos)
-#            cs = local_state.cs
-#            h = local_state.h
-#            W_lorentz = local_state.W_lorentz
-#            xi = local_state.wavespeed(self.wavenumber)
-#            g = vt**2 * (xi**2 - 1.0) / (1.0 - xi * v)**2
-#            dwdp[0] = 1.0 / (h * cs**2)
-#            dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / np.sqrt(1.0 + g)
-#            dwdp[2] = local_state.p / (rho**2 * h * cs**2)
-#            return dwdp
 
         self.name = r"{\cal R}"
         if self.wavenumber == 0:
