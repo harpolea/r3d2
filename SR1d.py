@@ -64,6 +64,30 @@ class State(object):
         s = r"$" + self.latex_string() + r"$"
         return s
 
+def rarefaction_dwdp(w, p, q_known, wavenumber):
+    """
+    There is a tricky point here that needs investigation. If
+    the input p is used here, rather than local_state.p, then they
+    can diverge (when vt is significant) leading to overflows of g. By
+    using local_state we avoid the overflow, but it may mean the final
+    state is not very accurate. Even this isn't enough to tackle the
+    faster test bench 3 problem.
+    """
+    lr_sign = wavenumber - 1
+    dwdp = np.zeros_like(w)
+    rho, v, eps = w
+    vt = q_known.vt_from_known(rho, v, eps)
+    local_state = State(rho, v, vt, eps, q_known.eos)
+    cs = local_state.cs
+    h = local_state.h
+    W_lorentz = local_state.W_lorentz
+    xi = local_state.wavespeed(wavenumber)
+    g = vt**2 * (xi**2 - 1.0) / (1.0 - xi * v)**2
+    dwdp[0] = 1.0 / (h * cs**2)
+    dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / np.sqrt(1.0 + g)
+    dwdp[2] = local_state.p / (rho**2 * h * cs**2)
+    return dwdp
+    
 class Wave(object):
 
     def __init__(self, q_known, unknown_value, wavenumber):
@@ -174,34 +198,33 @@ class Wave(object):
 
         self.wave_speed = np.array([v_shock, v_shock])
         
-    
     def solve_rarefaction(self, q_known, p_star):
         
         self.type = "Rarefaction"
-        lr_sign = self.wavenumber - 1
+#        lr_sign = self.wavenumber - 1
         
-        def rarefaction_dwdp(w, p):
-            """
-            There is a tricky point here that needs investigation. If
-            the input p is used here, rather than local_state.p, then they
-            can diverge (when vt is significant) leading to overflows of g. By
-            using local_state we avoid the overflow, but it may mean the final
-            state is not very accurate. Even this isn't enough to tackle the
-            faster test bench 3 problem.
-            """
-            dwdp = np.zeros_like(w)
-            rho, v, eps = w
-            vt = q_known.vt_from_known(rho, v, eps)
-            local_state = State(rho, v, vt, eps, q_known.eos)
-            cs = local_state.cs
-            h = local_state.h
-            W_lorentz = local_state.W_lorentz
-            xi = local_state.wavespeed(self.wavenumber)
-            g = vt**2 * (xi**2 - 1.0) / (1.0 - xi * v)**2
-            dwdp[0] = 1.0 / (h * cs**2)
-            dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / np.sqrt(1.0 + g)
-            dwdp[2] = local_state.p / (rho**2 * h * cs**2)
-            return dwdp
+#        def rarefaction_dwdp(w, p):
+#            """
+#            There is a tricky point here that needs investigation. If
+#            the input p is used here, rather than local_state.p, then they
+#            can diverge (when vt is significant) leading to overflows of g. By
+#            using local_state we avoid the overflow, but it may mean the final
+#            state is not very accurate. Even this isn't enough to tackle the
+#            faster test bench 3 problem.
+#            """
+#            dwdp = np.zeros_like(w)
+#            rho, v, eps = w
+#            vt = q_known.vt_from_known(rho, v, eps)
+#            local_state = State(rho, v, vt, eps, q_known.eos)
+#            cs = local_state.cs
+#            h = local_state.h
+#            W_lorentz = local_state.W_lorentz
+#            xi = local_state.wavespeed(self.wavenumber)
+#            g = vt**2 * (xi**2 - 1.0) / (1.0 - xi * v)**2
+#            dwdp[0] = 1.0 / (h * cs**2)
+#            dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / np.sqrt(1.0 + g)
+#            dwdp[2] = local_state.p / (rho**2 * h * cs**2)
+#            return dwdp
 
         self.name = r"{\cal R}"
         if self.wavenumber == 0:
@@ -221,7 +244,8 @@ class Wave(object):
         else:
             w_all = odeint(rarefaction_dwdp, 
                            np.array([q_known.rho, q_known.v, q_known.eps]), 
-                           [q_known.p, p_star], rtol = 1e-12, atol = 1e-10)
+                           [q_known.p, p_star], rtol = 1e-12, atol = 1e-10,
+                           args=((q_known, self.wavenumber)))
             q_unknown = State(w_all[-1, 0], w_all[-1, 1], 
                               q_known.vt_from_known(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2]),
                               w_all[-1, 2], q_known.eos, label)
@@ -237,42 +261,19 @@ class Wave(object):
             
     def plotting_data(self):
         
-        #TODO: DRY! This function should be raised up the hierarchy.
-        def rarefaction_dwdp(w, p, q_known):
-            """
-            There is a tricky point here that needs investigation. If
-            the input p is used here, rather than local_state.p, then they
-            can diverge (when vt is significant) leading to overflows of g. By
-            using local_state we avoid the overflow, but it may mean the final
-            state is not very accurate. Even this isn't enough to tackle the
-            faster test bench 3 problem.
-            """
-            lr_sign = self.wavenumber - 1
-            dwdp = np.zeros_like(w)
-            rho, v, eps = w
-            vt = q_known.vt_from_known(rho, v, eps)
-            local_state = State(rho, v, vt, eps, q_known.eos)
-            cs = local_state.cs
-            h = local_state.h
-            W_lorentz = local_state.W_lorentz
-            xi = local_state.wavespeed(self.wavenumber)
-            g = vt**2 * (xi**2 - 1.0) / (1.0 - xi * v)**2
-            dwdp[0] = 1.0 / (h * cs**2)
-            dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / np.sqrt(1.0 + g)
-            dwdp[2] = local_state.p / (rho**2 * h * cs**2)
-            return dwdp
-            
         if self.type == "Rarefaction":
             if self.wavenumber == 0:
                 p = np.linspace(self.q_l.p, self.q_r.p)
                 w_all = odeint(rarefaction_dwdp, 
                                np.array([self.q_l.rho, self.q_l.v, self.q_l.eps]), 
-                               p, rtol = 1e-12, atol = 1e-10, args=(self.q_l,))
+                               p, rtol = 1e-12, atol = 1e-10, 
+                               args=(self.q_l,self.wavenumber))
             else:
                 p = np.linspace(self.q_r.p, self.q_l.p)
                 w_all = odeint(rarefaction_dwdp, 
                                np.array([self.q_r.rho, self.q_r.v, self.q_r.eps]), 
-                               p, rtol = 1e-12, atol = 1e-10, args=(self.q_r,))
+                               p, rtol = 1e-12, atol = 1e-10, 
+                               args=(self.q_r,self.wavenumber))
                 p = p[-1::-1]
                 w_all = w_all[-1::-1,:]
             data = np.zeros((len(p),8))
