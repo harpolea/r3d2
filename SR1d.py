@@ -234,6 +234,60 @@ class Wave(object):
         else:
             self.q_l = deepcopy(q_unknown)
             self.wave_speed = np.array([v_unknown, v_known])
+            
+    def plotting_data(self):
+        
+        #TODO: DRY! This function should be raised up the hierarchy.
+        def rarefaction_dwdp(w, p, q_known):
+            """
+            There is a tricky point here that needs investigation. If
+            the input p is used here, rather than local_state.p, then they
+            can diverge (when vt is significant) leading to overflows of g. By
+            using local_state we avoid the overflow, but it may mean the final
+            state is not very accurate. Even this isn't enough to tackle the
+            faster test bench 3 problem.
+            """
+            lr_sign = self.wavenumber - 1
+            dwdp = np.zeros_like(w)
+            rho, v, eps = w
+            vt = q_known.vt_from_known(rho, v, eps)
+            local_state = State(rho, v, vt, eps, q_known.eos)
+            cs = local_state.cs
+            h = local_state.h
+            W_lorentz = local_state.W_lorentz
+            xi = local_state.wavespeed(self.wavenumber)
+            g = vt**2 * (xi**2 - 1.0) / (1.0 - xi * v)**2
+            dwdp[0] = 1.0 / (h * cs**2)
+            dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / np.sqrt(1.0 + g)
+            dwdp[2] = local_state.p / (rho**2 * h * cs**2)
+            return dwdp
+            
+        if self.type == "Rarefaction":
+            if self.wavenumber == 0:
+                p = np.linspace(self.q_l.p, self.q_r.p)
+                w_all = odeint(rarefaction_dwdp, 
+                               np.array([self.q_l.rho, self.q_l.v, self.q_l.eps]), 
+                               p, rtol = 1e-12, atol = 1e-10, args=(self.q_l,))
+            else:
+                p = np.linspace(self.q_r.p, self.q_l.p)
+                w_all = odeint(rarefaction_dwdp, 
+                               np.array([self.q_r.rho, self.q_r.v, self.q_r.eps]), 
+                               p, rtol = 1e-12, atol = 1e-10, args=(self.q_r,))
+                p = p[-1::-1]
+                w_all = w_all[-1::-1,:]
+            data = np.zeros((len(p),8))
+            xi = np.zeros_like(p)
+            for i in range(len(p)):
+                state = State(w_all[i,0], w_all[i,1],
+                              self.q_l.vt_from_known(w_all[i,0], w_all[i,1], w_all[i,2]),
+                              w_all[i, 2], self.q_l.eos)
+                xi[i] = state.wavespeed(self.wavenumber)
+                data[i,:] = state.state()
+        else:
+            data = np.vstack((self.q_l.state(), self.q_r.state()))
+            xi = np.array([self.q_l.wavespeed(self.wavenumber),
+                           self.q_l.wavespeed(self.wavenumber)])
+        return xi, data
 
     def latex_string(self):
         s = self.name
@@ -291,7 +345,8 @@ class RP(object):
                       Wave(self.state_star_l, self.state_star_r, 1), wave_r]
         
     def _figure_data(self, format):
-        fig, ax = pyplot.subplots()
+        fig, axs = pyplot.subplots(3,3)
+        ax = axs[0,0]
         for w in self.waves[0], self.waves[2]:
             if w.type == 'Rarefaction':
                 xi_end = np.linspace(w.wave_speed[0], w.wave_speed[1], 5)
@@ -307,6 +362,32 @@ class RP(object):
         ax.set_xlabel(r"$x$")
         ax.set_ylabel(r"$t$")
         ax.set_title("Characteristics")
+        names = [r"$\rho$", r"$v$", r"$v_t$", r"$\epsilon$", r"$p$", r"$W$",
+                 r"$h$", r"$c_s$"]
+        xi = [-1.05]
+        data = self.state_l.state()
+        for wave in self.waves:
+            xi_wave, data_wave = wave.plotting_data()
+            xi = np.hstack((xi, xi_wave))
+            data = np.vstack((data, data_wave))
+        xi = np.hstack((xi, [1.05]))
+        data = np.vstack((data, self.state_r.state()))
+        for ax_j in range(3):
+            for ax_i in range(3):
+                if ax_i == 0 and ax_j == 0:
+                    continue
+                nvar = ax_i*3 + ax_j - 1
+                axs[ax_i, ax_j].plot(xi, data[:, nvar])
+                var_max = np.max(data[:, nvar])
+                var_min = np.min(data[:, nvar])
+                d_var = max(var_max - var_min, 
+                            0.01 * min(abs(var_min), abs(var_max)), 0.01)
+                axs[ax_i, ax_j].set_xlim(-1.05, 1.05)
+                axs[ax_i, ax_j].set_ylim(var_min - 0.05 * d_var,
+                                         var_max + 0.05 * d_var)
+                axs[ax_i, ax_j].set_xlabel(r"$\xi$")
+                axs[ax_i, ax_j].set_ylabel(names[nvar])
+        fig.tight_layout()
         data = print_figure(fig, format)
         pyplot.close(fig)
         return data
