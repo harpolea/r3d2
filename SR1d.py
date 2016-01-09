@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.optimize import brentq, root
+from scipy.optimize import brentq
 from scipy.integrate import odeint
 from copy import deepcopy
 
@@ -143,14 +143,17 @@ class Wave(object):
             q_known.eos, label)
             v_shock = q_known.wavespeed(self.wavenumber)
         else:
-            rho_eps_guess_ratio = np.sqrt(p_star/q_known.p)
-            max_rho_eps = max(q_known.rho, q_known.eps)
-            rho_eps_guess = np.array([rho_eps_guess_ratio*max_rho_eps,
-                                      rho_eps_guess_ratio*max_rho_eps])
-            rho_eps = root(shock_root, rho_eps_guess)
-            rho, eps = rho_eps.x
+            min_rho = q_known.rho
+            shock_root_min = shock_root_rho(min_rho)
+            max_rho = np.sqrt(p_star/q_known.p) * q_known.rho
+            shock_root_max = shock_root_rho(max_rho)
+            while(shock_root_min * shock_root_max > 0.0):
+                max_rho *= 10.0
+                shock_root_max = shock_root_rho(max_rho)
+            rho = brentq(shock_root_rho, min_rho, max_rho)
+            h = q_known.eos['h_from_rho_p'](rho, p_star)
+            eps = h - 1.0 - p_star / rho
             dp = p_star - q_known.p
-            h = 1.0 + eps + p_star / rho
             dh2 = h**2 - q_known.h**2
             j = np.sqrt(-dp / (dh2 / dp - 2.0 * q_known.h / q_known.rho))
             v_shock = (q_known.rho**2 * q_known.W_lorentz**2 * q_known.v + \
