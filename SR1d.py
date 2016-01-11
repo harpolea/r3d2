@@ -201,9 +201,14 @@ class Wave(object):
 
         self.wave_speed = np.array([v_shock, v_shock])
         
-    def solve_rarefaction(self, q_known, p_star):
+    def solve_rarefaction(self, q_known, p_star, unknown_eos=None):
         
         self.type = "Rarefaction"
+        reactive = False
+        if unknown_eos is None:
+            unknown_eos = q_known.eos
+        else:
+            reactive = True
 
         self.name = r"{\cal R}"
         if self.wavenumber == 0:
@@ -225,6 +230,8 @@ class Wave(object):
                            np.array([q_known.rho, q_known.v, q_known.eps]), 
                            [q_known.p, p_star], rtol = 1e-12, atol = 1e-10,
                            args=((q_known, self.wavenumber)))
+            if reactive:
+                raise(NotImplementedError, "Do this")
             q_unknown = State(w_all[-1, 0], w_all[-1, 1], 
                               q_known.vt_from_known(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2]),
                               w_all[-1, 2], q_known.eos, label)
