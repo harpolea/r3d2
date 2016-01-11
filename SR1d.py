@@ -132,11 +132,10 @@ class Wave(object):
                 self.solve_shock(q_known, unknown_value)
             else:
                 self.solve_rarefaction(q_known, unknown_value)
-    
-    def solve_shock(self, q_known, p_star, unknown_eos=None):
+                
+    def mass_flux_squared(self, q_known, p_star, unknown_eos=None):
         
         self.type = "Shock"
-        lr_sign = self.wavenumber - 1
         if unknown_eos is None:
             unknown_eos = q_known.eos
 
@@ -144,6 +143,29 @@ class Wave(object):
             h = unknown_eos['h_from_rho_p'](rho, p_star)
             return (h**2 - q_known.h**2) - \
             (h/rho + q_known.h/q_known.rho) * (p_star - q_known.p)
+        
+        min_rho = q_known.rho
+        shock_root_min = shock_root_rho(min_rho)
+        max_rho = np.sqrt(p_star/q_known.p) * q_known.rho
+        shock_root_max = shock_root_rho(max_rho)
+        while(shock_root_min * shock_root_max > 0.0):
+            max_rho *= 10.0
+            shock_root_max = shock_root_rho(max_rho)
+        rho = brentq(shock_root_rho, min_rho, max_rho)
+        h = unknown_eos['h_from_rho_p'](rho, p_star)
+        eps = h - 1.0 - p_star / rho
+        dp = p_star - q_known.p
+        dh2 = h**2 - q_known.h**2
+        j2 = -dp / (dh2 / dp - 2.0 * q_known.h / q_known.rho)
+        
+        return j2, rho, eps, dp
+    
+    def solve_shock(self, q_known, p_star, unknown_eos=None):
+        
+        self.type = "Shock"
+        lr_sign = self.wavenumber - 1
+        if unknown_eos is None:
+            unknown_eos = q_known.eos
 
         self.name = r"{\cal S}"
         if self.wavenumber == 0:
@@ -159,19 +181,8 @@ class Wave(object):
             q_known.eos, label)
             v_shock = q_known.wavespeed(self.wavenumber)
         else:
-            min_rho = q_known.rho
-            shock_root_min = shock_root_rho(min_rho)
-            max_rho = np.sqrt(p_star/q_known.p) * q_known.rho
-            shock_root_max = shock_root_rho(max_rho)
-            while(shock_root_min * shock_root_max > 0.0):
-                max_rho *= 10.0
-                shock_root_max = shock_root_rho(max_rho)
-            rho = brentq(shock_root_rho, min_rho, max_rho)
-            h = unknown_eos['h_from_rho_p'](rho, p_star)
-            eps = h - 1.0 - p_star / rho
-            dp = p_star - q_known.p
-            dh2 = h**2 - q_known.h**2
-            j = np.sqrt(-dp / (dh2 / dp - 2.0 * q_known.h / q_known.rho))
+            j2, rho, eps, dp = self.mass_flux_squared(q_known, p_star, unknown_eos)
+            j = np.sqrt(j2)
             v_shock = (q_known.rho**2 * q_known.W_lorentz**2 * q_known.v + \
             lr_sign * j**2 * \
             np.sqrt(1.0 + q_known.rho**2 * q_known.W_lorentz**2 * (1.0 - q_known.v**2) / j**2)) / \
