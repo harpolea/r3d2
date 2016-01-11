@@ -138,16 +138,6 @@ class Wave(object):
         self.type = "Shock"
         lr_sign = self.wavenumber - 1
 
-        def shock_root(rho_eps):
-            rho, eps = rho_eps
-            p = q_known.eos['p_from_rho_eps'](rho, eps)
-            h = q_known.eos['h_from_rho_eps'](rho, eps)
-            dw = np.zeros_like(rho_eps)
-            dw[0] = p_star - p
-            dw[1] = (h**2 - q_known.h**2) - \
-            (h/rho + q_known.h/q_known.rho) * (p - q_known.p)
-            return dw
-            
         def shock_root_rho(rho):
             h = q_known.eos['h_from_rho_p'](rho, p_star)
             return (h**2 - q_known.h**2) - \
