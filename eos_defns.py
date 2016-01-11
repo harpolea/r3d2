@@ -19,6 +19,22 @@ def eos_gamma_law(gamma):
 
     return eos
 
+def eos_gamma_law_react(gamma, q):
+
+    p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * (eps - q)
+    h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps + (1.0 - gamma) * q
+    cs_from_rho_eps = lambda rho, eps : \
+    np.sqrt(gamma * (gamma - 1.0) * (eps - q) / \
+    (1.0 + gamma * eps + (1.0 - gamma) * q))
+    h_from_rho_p = lambda rho, p : 1.0 + gamma / (gamma - 1.0) * p / rho + q
+
+    eos = {'p_from_rho_eps' : p_from_rho_eps,
+           'h_from_rho_eps' : h_from_rho_eps,
+           'cs_from_rho_eps' : cs_from_rho_eps,
+           'h_from_rho_p' : h_from_rho_p}
+
+    return eos
+
 def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
 
     def p_from_rho_eps(rho, eps):
