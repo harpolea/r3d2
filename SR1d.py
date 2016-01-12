@@ -90,7 +90,7 @@ def rarefaction_dwdp(w, p, q_known, wavenumber):
     
 class Wave(object):
 
-    def __init__(self, q_known, unknown_value, wavenumber):
+    def __init__(self, q_known, unknown_value, wavenumber, unknown_eos=None):
         """
         Initialize a wave.
         
@@ -123,9 +123,15 @@ class Wave(object):
         elif self.wavenumber == 0:
             self.q_l = deepcopy(q_known)
             if (self.q_l.p < unknown_value):
-                self.solve_shock(q_known, unknown_value)
+                if unknown_eos is not None:
+                    self.solve_detonation(q_known, unknown_value, unknown_eos)
+                else:
+                    self.solve_shock(q_known, unknown_value)
             else:
-                self.solve_rarefaction(q_known, unknown_value)
+                if unknown_eos is not None:
+                    self.solve_deflagration(q_known, unknown_value, unknown_eos)
+                else:
+                    self.solve_rarefaction(q_known, unknown_value)
         else:
             self.q_r = deepcopy(q_known)
             if (self.q_r.p < unknown_value):
@@ -295,6 +301,117 @@ class Wave(object):
             self.q_l = deepcopy(q_unknown)
             self.wave_speed = np.array([v_unknown, v_known])
             
+    def solve_deflagration(self, q_known, p_star, unknown_eos):
+        
+        self.name = r"({\cal WDF})"
+        if self.wavenumber == 0:
+            label = r"\star_L"
+            self.name += r"_{\leftarrow}"
+        else:
+            label = r"\star_R"
+            self.name += r"_{\rightarrow}"
+            
+        v_known = q_known.wavespeed(self.wavenumber)
+
+        if np.allclose(q_known.p, p_star):
+            self.trivial = True
+            q_unknown = State(q_known.rho, q_known.v, q_known.vt, q_known.eps,
+            q_known.eos, label)
+            v_unknown = v_known
+        else:
+            w_all = odeint(rarefaction_dwdp, 
+                           np.array([q_known.rho, q_known.v, q_known.eps]), 
+                           [q_known.p, p_star], rtol = 1e-12, atol = 1e-10,
+                           args=((q_known, self.wavenumber)))
+            lr_sign = self.wavenumber - 1
+            q_inert = State(w_all[-1, 0], w_all[-1, 1], 
+                            q_known.vt_from_known(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2]),
+                            w_all[-1, 2], q_known.eos, label)
+            p_min = q_inert.p
+            p_max = q_known.p
+            
+            def deflagration_root(p_0_star):
+                w_0_star = odeint(rarefaction_dwdp, 
+                       np.array([q_known.rho, q_known.v, q_known.eps]), 
+                       [q_known.p, p_0_star], rtol = 1e-12, atol = 1e-10,
+                       args=((q_known, self.wavenumber)))
+                q_0_star_known = State(w_0_star[-1, 0], w_0_star[-1, 1], 
+                            q_known.vt_from_known(w_0_star[-1, 0], w_0_star[-1, 1], w_0_star[-1, 2]),
+                            w_0_star[-1, 2], q_known.eos, label)
+                j2, rho, eps, dp = self.mass_flux_squared(q_0_star_known, p_star, unknown_eos)
+                j = np.sqrt(j2)
+                v_shock = (q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 * q_0_star_known.v + \
+                lr_sign * j**2 * \
+                np.sqrt(1.0 + q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 * (1.0 - q_0_star_known.v**2) / j**2)) / \
+                (q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 + j**2)
+                W_lorentz_shock = 1.0 / np.sqrt(1.0 - v_shock**2)
+                v = (q_0_star_known.h * q_0_star_known.W_lorentz * q_0_star_known.v + lr_sign * dp * W_lorentz_shock / j) / \
+                (q_0_star_known.h * q_0_star_known.W_lorentz + dp * (1.0 / q_0_star_known.rho / q_0_star_known.W_lorentz + \
+                lr_sign * q_0_star_known.v * W_lorentz_shock / j))
+                vt = q_0_star_known.vt_from_known(rho, v, eps)
+                q_unknown = State(rho, v, vt, eps, unknown_eos, label)
+                return q_unknown.cs - v_shock
+                
+            p_0_star = brentq(deflagration_root, p_min, p_max)
+            w_0_star = odeint(rarefaction_dwdp, 
+                   np.array([q_known.rho, q_known.v, q_known.eps]), 
+                   [q_known.p, p_0_star], rtol = 1e-12, atol = 1e-10,
+                   args=((q_known, self.wavenumber)))
+            q_0_star_known = State(w_0_star[-1, 0], w_0_star[-1, 1], 
+                        q_known.vt_from_known(w_0_star[-1, 0], w_0_star[-1, 1], w_0_star[-1, 2]),
+                        w_0_star[-1, 2], q_known.eos, label)
+            j2, rho, eps, dp = self.mass_flux_squared(q_0_star_known, p_star, unknown_eos)
+            j = np.sqrt(j2)
+            v_shock = (q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 * q_0_star_known.v + \
+            lr_sign * j**2 * \
+            np.sqrt(1.0 + q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 * (1.0 - q_0_star_known.v**2) / j**2)) / \
+            (q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 + j**2)
+            W_lorentz_shock = 1.0 / np.sqrt(1.0 - v_shock**2)
+            v = (q_0_star_known.h * q_0_star_known.W_lorentz * q_0_star_known.v + lr_sign * dp * W_lorentz_shock / j) / \
+            (q_0_star_known.h * q_0_star_known.W_lorentz + dp * (1.0 / q_0_star_known.rho / q_0_star_known.W_lorentz + \
+            lr_sign * q_0_star_known.v * W_lorentz_shock / j))
+            vt = q_0_star_known.vt_from_known(rho, v, eps)
+            q_unknown = State(rho, v, vt, eps, unknown_eos, label)
+            v_unknown = v_shock
+            
+        self.wave_speed = []
+        if self.wavenumber == 0:
+            self.q_r = deepcopy(q_unknown)
+            self.wave_speed = np.array([v_known, v_unknown])
+        else:
+            self.q_l = deepcopy(q_unknown)
+            self.wave_speed = np.array([v_unknown, v_known])
+    
+    def solve_detonation(self, q_known, p_star, unknown_eos):
+        
+        self.type = "Detonation"
+        lr_sign = self.wavenumber - 1
+        if unknown_eos is None:
+            unknown_eos = q_known.eos
+
+        self.name = r"({\cal SDT})"
+        if self.wavenumber == 0:
+            label = r"\star_L"
+            self.name += r"_{\leftarrow}"
+        else:
+            label = r"\star_R"
+            self.name += r"_{\rightarrow}"
+
+        if np.allclose(q_known.p, p_star):
+            self.trivial = True
+            q_unknown = State(q_known.rho, q_known.v, q_known.vt, q_known.eps, 
+            q_known.eos, label)
+            v_shock = q_known.wavespeed(self.wavenumber)
+        else:
+            raise(NotImplementedError, "Do this")   
+                        
+        if self.wavenumber == 0:
+            self.q_r = deepcopy(q_unknown)
+        else:
+            self.q_l = deepcopy(q_unknown)
+
+        self.wave_speed = np.array([v_shock, v_shock])     
+        
     def plotting_data(self):
         
         if self.type == "Rarefaction":
