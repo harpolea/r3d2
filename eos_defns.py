@@ -19,7 +19,7 @@ def eos_gamma_law(gamma):
 
     return eos
 
-def eos_gamma_law_react(gamma, q):
+def eos_gamma_law_react(gamma, q, Cv):
 
     p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * (eps - q)
     h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps + (1.0 - gamma) * q
@@ -27,11 +27,13 @@ def eos_gamma_law_react(gamma, q):
     np.sqrt(gamma * (gamma - 1.0) * (eps - q) / \
     (1.0 + gamma * eps + (1.0 - gamma) * q))
     h_from_rho_p = lambda rho, p : 1.0 + gamma / (gamma - 1.0) * p / rho + q
+    t_from_rho_eps = lambda rho, eps : (eps - q) / Cv
 
     eos = {'p_from_rho_eps' : p_from_rho_eps,
            'h_from_rho_eps' : h_from_rho_eps,
            'cs_from_rho_eps' : cs_from_rho_eps,
-           'h_from_rho_p' : h_from_rho_p}
+           'h_from_rho_p' : h_from_rho_p,
+           't_from_rho_eps' : t_from_rho_eps}
 
     return eos
 

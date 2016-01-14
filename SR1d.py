@@ -90,7 +90,8 @@ def rarefaction_dwdp(w, p, q_known, wavenumber):
     
 class Wave(object):
 
-    def __init__(self, q_known, unknown_value, wavenumber, unknown_eos=None):
+    def __init__(self, q_known, unknown_value, wavenumber, unknown_eos=None,
+                 t_i=None):
         """
         Initialize a wave.
         
@@ -124,24 +125,28 @@ class Wave(object):
             self.q_l = deepcopy(q_known)
             if (self.q_l.p < unknown_value):
                 if unknown_eos is not None:
-                    self.solve_detonation(q_known, unknown_value, unknown_eos)
+                    assert(t_i is not None)
+                    self.solve_detonation(q_known, unknown_value, unknown_eos, t_i)
                 else:
                     self.solve_shock(q_known, unknown_value)
             else:
                 if unknown_eos is not None:
-                    self.solve_deflagration(q_known, unknown_value, unknown_eos)
+                    assert(t_i is not None)
+                    self.solve_deflagration(q_known, unknown_value, unknown_eos, t_i)
                 else:
                     self.solve_rarefaction(q_known, unknown_value)
         else:
             self.q_r = deepcopy(q_known)
             if (self.q_r.p < unknown_value):
                 if unknown_eos is not None:
-                    self.solve_detonation(q_known, unknown_value, unknown_eos)
+                    assert(t_i is not None)
+                    self.solve_detonation(q_known, unknown_value, unknown_eos, t_i)
                 else:
                     self.solve_shock(q_known, unknown_value)
             else:
                 if unknown_eos is not None:
-                    self.solve_deflagration(q_known, unknown_value, unknown_eos)
+                    assert(t_i is not None)
+                    self.solve_deflagration(q_known, unknown_value, unknown_eos, t_i)
                 else:
                     self.solve_rarefaction(q_known, unknown_value)
                 
@@ -155,15 +160,28 @@ class Wave(object):
             return (h**2 - q_known.h**2) - \
             (h/rho + q_known.h/q_known.rho) * (p_star - q_known.p)
         
-        min_rho = q_known.rho
-        shock_root_min = shock_root_rho(min_rho)
-        max_rho = np.sqrt(p_star/q_known.p) * q_known.rho
-        shock_root_max = shock_root_rho(max_rho)
-        while(shock_root_min * shock_root_max > 0.0):
-            min_rho /= 1.1 # Not sure - could end up with unphysical root?
-            max_rho *= 10.0
+        if p_star >= q_known.p: 
+            # Shock
+            min_rho = q_known.rho
             shock_root_min = shock_root_rho(min_rho)
+            max_rho = np.sqrt(p_star/q_known.p) * q_known.rho
             shock_root_max = shock_root_rho(max_rho)
+            while(shock_root_min * shock_root_max > 0.0):
+                min_rho /= 1.1 # Not sure - could end up with unphysical root?
+                max_rho *= 10.0
+                shock_root_min = shock_root_rho(min_rho)
+                shock_root_max = shock_root_rho(max_rho)
+        else:
+            # Deflagration
+            max_rho = q_known.rho
+            shock_root_max = shock_root_rho(max_rho)
+            min_rho = np.sqrt(p_star/q_known.p) * q_known.rho
+            shock_root_min = shock_root_rho(min_rho)
+            while(shock_root_min * shock_root_max > 0.0):
+                min_rho /= 10.0 # Not sure - could end up with unphysical root?
+                max_rho *= 1.1
+                shock_root_min = shock_root_rho(min_rho)
+                shock_root_max = shock_root_rho(max_rho)
         rho = brentq(shock_root_rho, min_rho, max_rho)
         h = unknown_eos['h_from_rho_p'](rho, p_star)
         eps = h - 1.0 - p_star / rho
@@ -253,7 +271,7 @@ class Wave(object):
             self.q_l = deepcopy(q_unknown)
             self.wave_speed = np.array([v_unknown, v_known])
             
-    def solve_deflagration(self, q_known, p_star, unknown_eos):
+    def solve_deflagration(self, q_known, p_star, unknown_eos, t_i):
         
         self.type = "Deflagration"
         self.name = r"({\cal WDF})"
@@ -272,15 +290,8 @@ class Wave(object):
             q_known.eos, label)
             v_unknown = v_known
         else:
-            w_all = odeint(rarefaction_dwdp, 
-                           np.array([q_known.rho, q_known.v, q_known.eps]), 
-                           [q_known.p, p_star], rtol = 1e-12, atol = 1e-10,
-                           args=((q_known, self.wavenumber)))
             lr_sign = self.wavenumber - 1
-            q_inert = State(w_all[-1, 0], w_all[-1, 1], 
-                            q_known.vt_from_known(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2]),
-                            w_all[-1, 2], q_known.eos, label)
-            p_min = q_inert.p
+            p_min = p_star
             p_max = q_known.p
             
             def mass_flux_deflagration(p_0_star):
@@ -310,8 +321,10 @@ class Wave(object):
                 (q_0_star_known.h * q_0_star_known.W_lorentz + dp * (1.0 / q_0_star_known.rho / q_0_star_known.W_lorentz + \
                 lr_sign * q_0_star_known.v * W_lorentz_shock / j))
                 vt = q_0_star_known.vt_from_known(rho, v, eps)
-                q_unknown = State(rho, v, vt, eps, unknown_eos, label)
-                return q_unknown.wavespeed(self.wavenumber) - v_shock
+                q_burnt = State(rho, v, vt, eps, unknown_eos, label)
+                t_burnt = q_burnt.eos['t_from_rho_eps'](
+                            q_burnt.rho, q_burnt.eps)
+                return t_burnt - t_i
                 
             j2_min = mass_flux_root(p_min)
             j2_max = mass_flux_root(p_max)
@@ -339,6 +352,8 @@ class Wave(object):
             lr_sign * q_0_star_known.v * W_lorentz_shock / j))
             vt = q_0_star_known.vt_from_known(rho, v, eps)
             q_unknown = State(rho, v, vt, eps, unknown_eos, label)
+            print("Speeds: {}, {}, {}".format(q_unknown.wavespeed(self.wavenumber),
+                  v_shock, q_0_star_known.wavespeed(self.wavenumber)))
             v_unknown = v_shock
             self.p_0_star = p_0_star
             self.q_0_star = q_0_star_known
@@ -427,23 +442,24 @@ class Wave(object):
                 w_all = w_all[-1::-1,:]
             data = np.zeros((len(p)+1,8))
             xi = np.zeros(len(p)+1)
-            for i in range(len(p)):
-                if self.wavenumber == 0:
+            if self.wavenumber == 0:
+                for i in range(len(p)):
                     state = State(w_all[i,0], w_all[i,1],
                                   self.q_l.vt_from_known(w_all[i,0], w_all[i,1], w_all[i,2]),
                                   w_all[i, 2], self.q_l.eos)
-                else:
+                    xi[i] = state.wavespeed(self.wavenumber)
+                    data[i,:] = state.state()
+                xi[-1] = self.wave_speed[-1]
+                data[-1,:] = self.q_r.state()
+            else:
+                xi[0] = self.wave_speed[0]
+                data[0,:] = self.q_l.state()
+                for i in range(len(p)):
                     state = State(w_all[i,0], w_all[i,1],
                                   self.q_r.vt_from_known(w_all[i,0], w_all[i,1], w_all[i,2]),
                                   w_all[i, 2], self.q_r.eos)
-                xi[i] = state.wavespeed(self.wavenumber)
-                data[i,:] = state.state()
-            if self.wavenumber == 0:
-                xi[-1] = self.q_r.wavespeed(self.wavenumber)
-                data[-1,:] = self.q_r.state()
-            else:
-                xi[-1] = self.q_l.wavespeed(self.wavenumber)
-                data[-1, :] = self.q_l.state()
+                    xi[i+1] = state.wavespeed(self.wavenumber)
+                    data[i+1,:] = state.state()
             
         return xi, data
 
@@ -596,11 +612,13 @@ if __name__ == "__main__":
 #    rp = RP(w_left, w_right)
 #    print(rp.p_star)
     
-    q_burnt = 0
+    q_burnt = 0.0
     q_unburnt = 0.1
     gamma = 5/3
-    eos_burnt = eos_defns.eos_gamma_law_react(gamma, q_burnt)
-    eos_unburnt = eos_defns.eos_gamma_law_react(gamma, q_unburnt)
-    q_left = State(1, 0, 0, 1, eos_burnt)
+    Cv = 1.0
+    t_i = 0.75
+    eos_burnt = eos_defns.eos_gamma_law_react(gamma, q_burnt, Cv)
+    eos_unburnt = eos_defns.eos_gamma_law_react(gamma, q_unburnt, Cv)
+    q_left = State(1, 0, 0, 2, eos_burnt)
     q_right = State(1, 0, 0, 2, eos_unburnt)
-    w_right = Wave(q_right, q_left.p, 2, eos_burnt)
+    w_right = Wave(q_right, 0.1*q_right.p, 2, eos_burnt, t_i)
