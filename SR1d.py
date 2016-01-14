@@ -147,7 +147,6 @@ class Wave(object):
                 
     def mass_flux_squared(self, q_known, p_star, unknown_eos=None):
         
-        self.type = "Shock"
         if unknown_eos is None:
             unknown_eos = q_known.eos
 
@@ -256,6 +255,7 @@ class Wave(object):
             
     def solve_deflagration(self, q_known, p_star, unknown_eos):
         
+        self.type = "Deflagration"
         self.name = r"({\cal WDF})"
         if self.wavenumber == 0:
             label = r"\star_L"
@@ -340,6 +340,8 @@ class Wave(object):
             vt = q_0_star_known.vt_from_known(rho, v, eps)
             q_unknown = State(rho, v, vt, eps, unknown_eos, label)
             v_unknown = v_shock
+            self.p_0_star = p_0_star
+            self.q_0_star = q_0_star_known
             
         self.wave_speed = []
         if self.wavenumber == 0:
@@ -404,10 +406,45 @@ class Wave(object):
                               w_all[i, 2], self.q_l.eos)
                 xi[i] = state.wavespeed(self.wavenumber)
                 data[i,:] = state.state()
-        else:
+        elif self.type == "Shock":
             data = np.vstack((self.q_l.state(), self.q_r.state()))
             xi = np.array([self.q_l.wavespeed(self.wavenumber),
                            self.q_l.wavespeed(self.wavenumber)])
+        elif self.type == "Deflagration":
+            if self.wavenumber == 0:
+                p = np.linspace(self.q_l.p, self.p_0_star)
+                w_all = odeint(rarefaction_dwdp, 
+                               np.array([self.q_l.rho, self.q_l.v, self.q_l.eps]), 
+                               p, rtol = 1e-12, atol = 1e-10, 
+                               args=(self.q_l,self.wavenumber))
+            else:
+                p = np.linspace(self.q_r.p, self.p_0_star)
+                w_all = odeint(rarefaction_dwdp, 
+                               np.array([self.q_r.rho, self.q_r.v, self.q_r.eps]), 
+                               p, rtol = 1e-12, atol = 1e-10, 
+                               args=(self.q_r,self.wavenumber))
+                p = p[-1::-1]
+                w_all = w_all[-1::-1,:]
+            data = np.zeros((len(p)+1,8))
+            xi = np.zeros(len(p)+1)
+            for i in range(len(p)):
+                if self.wavenumber == 0:
+                    state = State(w_all[i,0], w_all[i,1],
+                                  self.q_l.vt_from_known(w_all[i,0], w_all[i,1], w_all[i,2]),
+                                  w_all[i, 2], self.q_l.eos)
+                else:
+                    state = State(w_all[i,0], w_all[i,1],
+                                  self.q_r.vt_from_known(w_all[i,0], w_all[i,1], w_all[i,2]),
+                                  w_all[i, 2], self.q_r.eos)
+                xi[i] = state.wavespeed(self.wavenumber)
+                data[i,:] = state.state()
+            if self.wavenumber == 0:
+                xi[-1] = self.q_r.wavespeed(self.wavenumber)
+                data[-1,:] = self.q_r.state()
+            else:
+                xi[-1] = self.q_l.wavespeed(self.wavenumber)
+                data[-1, :] = self.q_l.state()
+            
         return xi, data
 
     def latex_string(self):
