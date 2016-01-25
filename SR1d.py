@@ -350,89 +350,117 @@ class Wave(object):
             self.trivial = True
             q_unknown = State(q_known.rho, q_known.v, q_known.vt, q_known.eps,
             q_known.eos, label)
-            v_unknown = v_known
+            q_precursor = deepcopy(q_unknown)
+            v_deflagration = v_known
         else:
             lr_sign = self.wavenumber - 1
             p_min = p_star
             p_max = q_known.p
             
-            def mass_flux_deflagration(p_0_star):
-                w_0_star = odeint(rarefaction_dwdp, 
-                       np.array([q_known.rho, q_known.v, q_known.eps]), 
-                       [q_known.p, p_0_star], rtol = 1e-12, atol = 1e-10,
-                       args=((q_known, self.wavenumber)))
-                q_0_star_known = State(w_0_star[-1, 0], w_0_star[-1, 1], 
-                            q_known.vt_from_known(w_0_star[-1, 0], w_0_star[-1, 1], w_0_star[-1, 2]),
-                            w_0_star[-1, 2], q_known.eos, label)
-                j2, rho, eps, dp = self.mass_flux_squared(q_0_star_known, p_star, unknown_eos)
-                return j2, rho, eps, dp, q_0_star_known
-                
-            def mass_flux_root(p_0_star):
-                j2, _, _, _, _ = mass_flux_deflagration(p_0_star)
-                return j2
+#            def mass_flux_deflagration(p_0_star):
+#                w_0_star = odeint(rarefaction_dwdp, 
+#                       np.array([q_known.rho, q_known.v, q_known.eps]), 
+#                       [q_known.p, p_0_star], rtol = 1e-12, atol = 1e-10,
+#                       args=((q_known, self.wavenumber)))
+#                q_0_star_known = State(w_0_star[-1, 0], w_0_star[-1, 1], 
+#                            q_known.vt_from_known(w_0_star[-1, 0], w_0_star[-1, 1], w_0_star[-1, 2]),
+#                            w_0_star[-1, 2], q_known.eos, label)
+#                j2, rho, eps, dp = self.mass_flux_squared(q_0_star_known, p_star, unknown_eos)
+#                return j2, rho, eps, dp, q_0_star_known
+#                
+#            def mass_flux_root(p_0_star):
+#                j2, _, _, _, _ = mass_flux_deflagration(p_0_star)
+#                return j2
             
-            def deflagration_root(p_0_star):
-                j2, rho, eps, dp, q_0_star_known = mass_flux_deflagration(p_0_star)
+            def deflagration_root(p_0_star, q_precursor):
+                j2, rho, eps, dp = self.mass_flux_squared(q_precursor, p_0_star, unknown_eos)
                 j = np.sqrt(j2)
-                v_shock = (q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 * q_0_star_known.v + \
+                v_deflagration = (q_precursor.rho**2 * q_precursor.W_lorentz**2 * q_precursor.v + \
                 lr_sign * j**2 * \
-                np.sqrt(1.0 + q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 * (1.0 - q_0_star_known.v**2) / j**2)) / \
-                (q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 + j**2)
-                W_lorentz_shock = 1.0 / np.sqrt(1.0 - v_shock**2)
-                v = (q_0_star_known.h * q_0_star_known.W_lorentz * q_0_star_known.v + lr_sign * dp * W_lorentz_shock / j) / \
-                (q_0_star_known.h * q_0_star_known.W_lorentz + dp * (1.0 / q_0_star_known.rho / q_0_star_known.W_lorentz + \
-                lr_sign * q_0_star_known.v * W_lorentz_shock / j))
-                vt = q_0_star_known.vt_from_known(rho, v, eps)
-                q_burnt = State(rho, v, vt, eps, unknown_eos, label)
-                t_burnt = q_burnt.eos['t_from_rho_eps'](
-                            q_burnt.rho, q_burnt.eps)
-                return t_burnt - t_i
+                np.sqrt(1.0 + q_precursor.rho**2 * q_precursor.W_lorentz**2 * (1.0 - q_precursor.v**2) / j**2)) / \
+                (q_precursor.rho**2 * q_precursor.W_lorentz**2 + j**2)
+                W_lorentz_deflagration = 1.0 / np.sqrt(1.0 - v_deflagration**2)
+                v = (q_precursor.h * q_precursor.W_lorentz * q_precursor.v + lr_sign * dp * W_lorentz_deflagration / j) / \
+                (q_precursor.h * q_precursor.W_lorentz + dp * (1.0 / q_precursor.rho / q_precursor.W_lorentz + \
+                lr_sign * q_precursor.v * W_lorentz_deflagration / j))
+                vt = q_precursor.vt_from_known(rho, v, eps)
+                q_unknown = State(rho, v, vt, eps, unknown_eos, label)
+                return q_unknown.wavespeed(self.wavenumber) - v_deflagration
                 
-            j2_min = mass_flux_root(p_min)
-            j2_max = mass_flux_root(p_max)
-            assert(j2_max > 0)
-            if j2_min <= 0:
-                p_min = brentq(mass_flux_root, p_min, p_max)
-                p_min *= (1.0 + 1e-6)
-            p_0_star = brentq(deflagration_root, p_min, p_max)
-            w_0_star = odeint(rarefaction_dwdp, 
-                   np.array([q_known.rho, q_known.v, q_known.eps]), 
-                   [q_known.p, p_0_star], rtol = 1e-12, atol = 1e-10,
-                   args=((q_known, self.wavenumber)))
-            q_0_star_known = State(w_0_star[-1, 0], w_0_star[-1, 1], 
-                        q_known.vt_from_known(w_0_star[-1, 0], w_0_star[-1, 1], w_0_star[-1, 2]),
-                        w_0_star[-1, 2], q_known.eos, label)
-            j2, rho, eps, dp = self.mass_flux_squared(q_0_star_known, p_star, unknown_eos)
+            def precursor_root(p_0_star):
+                shock = Wave(q_known, p_0_star, self.wavenumber)
+                if self.wavenumber == 0:
+                    q_precursor = shock.q_r
+                else:
+                    q_precursor = shock.q_l
+                t_precursor = q_precursor.eos['t_from_rho_eps'](
+                                q_precursor.rho, q_precursor.eps)
+                return t_precursor - t_i
+                
+            # First, find the precursor shock
+            t_min = precursor_root(p_min)
+            t_max = precursor_root(p_max)
+            assert(t_min < 0)
+            if t_max <= 0:
+                p_max *= 2
+                t_max = precursor_root(p_max)
+            p_0_star = brentq(precursor_root, p_min, p_max)
+            precursor_shock = Wave(q_known, p_0_star, self.wavenumber)
+            if self.wavenumber == 0:
+                q_precursor = precursor_shock.q_r
+            else:
+                q_precursor = precursor_shock.q_l
+            # Next, find the deflagration discontinuity
+            j2, rho, eps, dp = self.mass_flux_squared(q_precursor, p_star, unknown_eos)
             j = np.sqrt(j2)
-            v_shock = (q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 * q_0_star_known.v + \
+            v_deflagration = (q_precursor.rho**2 * q_precursor.W_lorentz**2 * q_precursor.v + \
             lr_sign * j**2 * \
-            np.sqrt(1.0 + q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 * (1.0 - q_0_star_known.v**2) / j**2)) / \
-            (q_0_star_known.rho**2 * q_0_star_known.W_lorentz**2 + j**2)
-            W_lorentz_shock = 1.0 / np.sqrt(1.0 - v_shock**2)
-            v = (q_0_star_known.h * q_0_star_known.W_lorentz * q_0_star_known.v + lr_sign * dp * W_lorentz_shock / j) / \
-            (q_0_star_known.h * q_0_star_known.W_lorentz + dp * (1.0 / q_0_star_known.rho / q_0_star_known.W_lorentz + \
-            lr_sign * q_0_star_known.v * W_lorentz_shock / j))
-            vt = q_0_star_known.vt_from_known(rho, v, eps)
+            np.sqrt(1.0 + q_precursor.rho**2 * q_precursor.W_lorentz**2 * (1.0 - q_precursor.v**2) / j**2)) / \
+            (q_precursor.rho**2 * q_precursor.W_lorentz**2 + j**2)
+            W_lorentz_deflagration = 1.0 / np.sqrt(1.0 - v_deflagration**2)
+            v = (q_precursor.h * q_precursor.W_lorentz * q_precursor.v + lr_sign * dp * W_lorentz_deflagration / j) / \
+            (q_precursor.h * q_precursor.W_lorentz + dp * (1.0 / q_precursor.rho / q_precursor.W_lorentz + \
+            lr_sign * q_precursor.v * W_lorentz_deflagration / j))
+            vt = q_precursor.vt_from_known(rho, v, eps)
             q_unknown = State(rho, v, vt, eps, unknown_eos, label)
-            print("Speeds: {}, {}, {}".format(q_unknown.wavespeed(self.wavenumber),
-                  v_shock, q_0_star_known.wavespeed(self.wavenumber)))
-            print(q_0_star_known.state())
-            print("Temp unburnt, known {}".format(q_known.eos['t_from_rho_eps'](q_known.rho, q_known.eps)))
-            print(q_unknown.state())
-            print("Temp burnt {}".format(q_unknown.eos['t_from_rho_eps'](q_unknown.rho, q_unknown.eps)))
-            print(q_0_star_known.state())
-            print("Temp unburnt {}".format(q_0_star_known.eos['t_from_rho_eps'](q_0_star_known.rho, q_0_star_known.eps)))
-            v_unknown = v_shock
+            # If the speed in the unknown state means the characteristics are
+            # not going into the deflagration, then this is an unstable strong
+            # deflagration
+            if (lr_sign*(q_unknown.wavespeed(self.wavenumber) - v_deflagration) < 0):
+                p_cjdf = brentq(deflagration_root, (1.0+1e-9)*p_star, 
+                                (1.0-1e-9)*p_0_star, 
+                                args=(q_precursor,))
+                j2, rho, eps, dp = self.mass_flux_squared(q_precursor, p_cjdf, unknown_eos)
+                j = np.sqrt(j2)
+                v_deflagration = (q_precursor.rho**2 * q_precursor.W_lorentz**2 * q_precursor.v + \
+                lr_sign * j**2 * \
+                np.sqrt(1.0 + q_precursor.rho**2 * q_precursor.W_lorentz**2 * (1.0 - q_precursor.v**2) / j**2)) / \
+                (q_precursor.rho**2 * q_precursor.W_lorentz**2 + j**2)
+                W_lorentz_deflagration = 1.0 / np.sqrt(1.0 - v_deflagration**2)
+                v = (q_precursor.h * q_precursor.W_lorentz * q_precursor.v + lr_sign * dp * W_lorentz_deflagration / j) / \
+                (q_precursor.h * q_precursor.W_lorentz + dp * (1.0 / q_precursor.rho / q_precursor.W_lorentz + \
+                lr_sign * q_precursor.v * W_lorentz_deflagration / j))
+                vt = q_precursor.vt_from_known(rho, v, eps)
+                q_cjdf = State(rho, v, vt, eps, unknown_eos, label)
+                # Now, we have to attach using a rarefaction
+                w_0_star = odeint(rarefaction_dwdp, 
+                       np.array([q_cjdf.rho, q_cjdf.v, q_cjdf.eps]), 
+                       [q_cjdf.p, p_star], rtol = 1e-12, atol = 1e-10,
+                       args=((q_cjdf, self.wavenumber)))
+                q_unknown = State(w_0_star[-1, 0], w_0_star[-1, 1], 
+                            q_cjdf.vt_from_known(w_0_star[-1, 0], w_0_star[-1, 1], w_0_star[-1, 2]),
+                            w_0_star[-1, 2], unknown_eos, label)
+                
             self.p_0_star = p_0_star
-            self.q_0_star = q_0_star_known
+            self.q_0_star = q_precursor
             
         self.wave_speed = []
         if self.wavenumber == 0:
             self.q_r = deepcopy(q_unknown)
-            self.wave_speed = np.array([v_known, v_unknown])
+            self.wave_speed = np.array([v_known, v_deflagration, q_precursor.wavespeed])
         else:
             self.q_l = deepcopy(q_unknown)
-            self.wave_speed = np.array([v_unknown, v_known])
+            self.wave_speed = np.array([q_precursor.wavespeed, v_deflagration, v_known])
     
     def solve_detonation(self, q_known, p_star, unknown_eos):
         
