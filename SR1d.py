@@ -9,10 +9,30 @@ from matplotlib import pyplot
 from IPython.core.pylabtools import print_figure
 
 class State(object):
+    """
+    A state at a point. Initialized with the rest mass density, velocity, and
+    specific internal energy, as well as an equation of state.
+    """
 
     def __init__(self, rho, v, vt, eps, eos, label=None):
         """
         Constructor
+        
+        Parameters
+        ----------
+        
+        rho : scalar
+            Rest mass density :math:`\rho_0`
+        v : scalar
+            Velocity component in the normal (:math:`x`) direction :math:`v_x`
+        v_t : scalar
+            Velocity component tangential to :math:`x` :math:`v_t`
+        eps : scalar
+            Specific internal energy :math:`\epsilon`
+        eos : dictionary
+            Equation of State
+        label : string
+            Label for output purposes.
         """
         self.rho = rho
         self.v = v
@@ -26,13 +46,29 @@ class State(object):
         self.label = label
 
     def prim(self):
+        """
+        Return the primitive variables :math:`\rho, v_x, v_t, \epsilon`.
+        """
         return np.array([self.rho, self.v, self.vt, self.eps])
 
     def state(self):
+        """
+        Return all variables :math:`\rho, v_x, v_t, \epsilon, p, W, h, c_s`.
+        """
         return np.array([self.rho, self.v, self.vt, self.eps, self.p,\
         self.W_lorentz, self.h, self.cs])
 
     def wavespeed(self, wavenumber):
+        """
+        Compute the wavespeed given the wave number (0 for the left wave,
+        2 for the right wave).
+        
+        Parameters
+        ----------
+        
+        wavenumber: scalar
+            Wave number ([0,1,2]).
+        """
         if wavenumber == 1:
             return self.v
         elif abs(wavenumber - 1) == 1:
@@ -46,6 +82,27 @@ class State(object):
             raise NotImplementedError("wavenumber must be 0, 1, 2")
             
     def vt_from_known(self, rho, v, eps):
+        """
+        Computes tangential velocity across a wave.
+        
+        Parameters
+        ----------
+        
+        self : State
+            The known state
+        rho : scalar
+            Rest mass density in the unknown state across the wave
+        v : scalar
+            Normal velocity :math:`v_x` in the unknown state across the wave
+        eps : scalar
+            Specific internal energy in the unknown state across the wave
+        
+        Returns
+        -------
+        
+        vt : scalar
+            Tangential velocity :math:`v_t` in the unknown state
+        """
         h = self.eos['h_from_rho_eps'](rho, eps)
         vt = self.h * self.W_lorentz * self.vt
         vt *= np.sqrt((1.0 - v**2)/
@@ -53,6 +110,9 @@ class State(object):
         return vt
 
     def latex_string(self):
+        """
+        Helper function to represent the state as a string.
+        """
         s = r"\begin{pmatrix} \rho \\ v_x \\ v_t \\ \epsilon \end{pmatrix}"
         if self.label:
             s += r"_{{{}}} = ".format(self.label)
@@ -61,6 +121,9 @@ class State(object):
         return s
 
     def _repr_latex_(self):
+        """
+        IPython or Jupyter repr.
+        """
         s = r"$" + self.latex_string() + r"$"
         return s
 
@@ -70,8 +133,7 @@ def rarefaction_dwdp(w, p, q_known, wavenumber):
     the input p is used here, rather than local_state.p, then they
     can diverge (when vt is significant) leading to overflows of g. By
     using local_state we avoid the overflow, but it may mean the final
-    state is not very accurate. Even this isn't enough to tackle the
-    faster test bench 3 problem.
+    state is not very accurate.
     """
     lr_sign = wavenumber - 1
     dwdp = np.zeros_like(w)
@@ -354,6 +416,12 @@ class Wave(object):
             q_unknown = State(rho, v, vt, eps, unknown_eos, label)
             print("Speeds: {}, {}, {}".format(q_unknown.wavespeed(self.wavenumber),
                   v_shock, q_0_star_known.wavespeed(self.wavenumber)))
+            print(q_0_star_known.state())
+            print("Temp unburnt, known {}".format(q_known.eos['t_from_rho_eps'](q_known.rho, q_known.eps)))
+            print(q_unknown.state())
+            print("Temp burnt {}".format(q_unknown.eos['t_from_rho_eps'](q_unknown.rho, q_unknown.eps)))
+            print(q_0_star_known.state())
+            print("Temp unburnt {}".format(q_0_star_known.eos['t_from_rho_eps'](q_0_star_known.rho, q_0_star_known.eps)))
             v_unknown = v_shock
             self.p_0_star = p_0_star
             self.q_0_star = q_0_star_known
@@ -616,9 +684,9 @@ if __name__ == "__main__":
     q_unburnt = 0.1
     gamma = 5/3
     Cv = 1.0
-    t_i = 0.75
+    t_i = 2
     eos_burnt = eos_defns.eos_gamma_law_react(gamma, q_burnt, Cv)
     eos_unburnt = eos_defns.eos_gamma_law_react(gamma, q_unburnt, Cv)
     q_left = State(1, 0, 0, 2, eos_burnt)
     q_right = State(1, 0, 0, 2, eos_unburnt)
-    w_right = Wave(q_right, 0.1*q_right.p, 2, eos_burnt, t_i)
+    w_right = Wave(q_right, 0.001*q_right.p, 2, eos_burnt, t_i)
