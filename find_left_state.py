@@ -70,6 +70,6 @@ if __name__ == "__main__":
     # initialise right state
     q_r = SR1d.State(rho_r, v_r, vt_r, eps_r, eos, label="R")
 
-    q_l, v_s = find_left(q_r, M=10.)
+    q_l, v_s = find_left(q_r, M=20.)
     print('left state [rho,  v,  vt,  eps] = {}'.format(q_l.prim()))
     print('wave speed = {}'.format(v_s))

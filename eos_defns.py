@@ -48,7 +48,7 @@ def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
             eps_cold = p_cold / rho / (gamma[1] - 1.) - \
                 k[1] * rho_transition**(gamma[1] - 1.) + \
                 k[0] * rho_transition**(gamma[0] - 1.)
-        
+
         p_th = max(0.0, (gamma_th - 1.0) * rho * (eps - eps_cold))
 
         return p_cold + p_th
@@ -79,16 +79,19 @@ def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
             eps_cold = p_cold / rho / (gamma[1] - 1.0) - \
                 k[1] * rho_transition**(gamma[1] - 1.0) + \
                 k[0] * rho_transition**(gamma[0] - 1.0)
-        
+
         p_th = max(0.0, p - p_cold)
         eps= 0.0 * p_th #FIXME
-        
+
         return 1.0 + eps_cold + eps + p / rho
+
+    def t_from_rho_eps(rho, eps):
+        raise(NotImplementedError, "t_from_rho_eps not implemented yet for polytrope eos")
 
     eos = {'p_from_rho_eps' : p_from_rho_eps,
            'h_from_rho_eps' : h_from_rho_eps,
            'cs_from_rho_eps' : cs_from_rho_eps,
-           'h_from_rho_p' : h_from_rho_p}
+           'h_from_rho_p' : h_from_rho_p,
+           't_from_rho_eps' : t_from_rho_eps}
 
     return eos
-
