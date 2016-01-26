@@ -129,10 +129,10 @@ class State(object):
         return s
 
 def rarefaction_dwdp(w, p, q_known, wavenumber):
-    """
+    r"""
     There is a tricky point here that needs investigation. If
     the input p is used here, rather than local_state.p, then they
-    can diverge (when vt is significant) leading to overflows of g. By
+    can diverge (when :math:`v_t` is significant) leading to overflows of g. By
     using local_state we avoid the overflow, but it may mean the final
     state is not very accurate.
     """
@@ -256,8 +256,8 @@ class Wave(object):
         return j2, rho, eps, dp
 
     def solve_shock(self, q_known, p_star, unknown_eos=None):
-        """
-        In the case of a shock, finds the unknown state on one side of the wave and wavespeed given the known state on the wave's other side and p star.
+        r"""
+        In the case of a shock, finds the unknown state on one side of the wave and wavespeed given the known state on the wave's other side and :math:`p_*`.
 
         Parameters
         ----------
@@ -313,8 +313,8 @@ class Wave(object):
         self.wave_speed = np.array([v_shock, v_shock])
 
     def solve_rarefaction(self, q_known, p_star, unknown_eos=None):
-        """
-        In the case of a rarefaction, finds the unknown state on one side of the wave and wavespeed given the known state on the wave's other side and p star.
+        r"""
+        In the case of a rarefaction, finds the unknown state on one side of the wave and wavespeed given the known state on the wave's other side and :math:`p_*`.
 
         Parameters
         ----------
@@ -368,8 +368,8 @@ class Wave(object):
             self.wave_speed = np.array([v_unknown, v_known])
 
     def solve_deflagration(self, q_known, p_star, unknown_eos, t_i):
-        """
-        In the case of a deflagration, finds the unknown state on one side of the wave and wavespeed given the known state on the wave's other side and p star.
+        r"""
+        In the case of a deflagration, finds the unknown state on one side of the wave and wavespeed given the known state on the wave's other side and :math:`p_*`.
 
         Parameters
         ----------
@@ -540,8 +540,8 @@ class Wave(object):
             self.wave_speed = np.array([q_precursor.wavespeed, v_deflagration, v_known])
 
     def solve_detonation(self, q_known, p_star, unknown_eos):
-        """
-        In the case of a detonation, finds the unknown state on one side of the wave and wavespeed given the known state on the wave's other side and p star.
+        r"""
+        In the case of a detonation, finds the unknown state on one side of the wave and wavespeed given the known state on the wave's other side and :math:`p_*`.
 
         Parameters
         ----------
