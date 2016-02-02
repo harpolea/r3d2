@@ -13,7 +13,7 @@ Contents:
 
    eos_defns.rst
    riemann_problems.rst
-
+   
 Indices and tables
 ==================
 

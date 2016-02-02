@@ -1,3 +1,8 @@
+"""
+R3D2 is..... #insert description here
+"""
+
+
 from __future__ import division
 import numpy as np
 from scipy.optimize import brentq
