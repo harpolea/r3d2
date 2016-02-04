@@ -12,6 +12,15 @@ def find_left(q_r, M=1.):
     Finds the left wave for a given Mach number and initial right state.
 
     Returns the left hand state and speed of the shock wave.
+
+    Parameters
+    ----------
+
+    q_r : State object
+        Known initial right state
+    M : scalar
+        Mach number of the wave we wish to create.
+
     """
 
     p_r = q_r.p
@@ -28,6 +37,19 @@ def find_left(q_r, M=1.):
         p_star_lims = [p_r, 1.e4 * p_r]
 
     def find_p_star(p_star_guess, q_r, c_s):
+        r"""
+        Finds residual of current Mach number estimate using current guess of the intermediate :math:`p_*` pressure.
+
+        Parameters
+        ----------
+
+        p_star_guess : scalar
+            Current guess of the intermediate :math:`p_*` pressure.
+        q_r : State
+            Known initial right state
+        c_s : scalar
+            Speed of sound in the material
+        """
         # wavenumber is 2 as nonlinear rhs wave
         wave_r = SR1d.Wave(q_r, p_star_guess, 2)
 

@@ -1,7 +1,12 @@
 # See http://conda.pydata.org/docs/travis.html
 language: python
 python:
+  - "2.7"
   - "3.4"
+  - "3.5"
+# code coverage
+before_install:
+  - pip install codecov
 # Setup anaconda
 install:
   - sudo apt-get update
@@ -21,12 +26,8 @@ install:
   - conda info -a
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib ipython nose
   - source activate test-environment
-  - pip install codecov
 # Run test
 script:
   nosetests --with-coverage
-# code coverage
-before_install:
-  - pip install codecov
 after_success:
   - codecov

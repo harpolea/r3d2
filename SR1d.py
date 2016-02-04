@@ -1,7 +1,6 @@
 """
-R3D2 is..... #insert description here
+R3D2 is a Relativistic Reactive Riemann problem solver for Deflagrations and Detonations. It extends standard solutions of the relativistic Riemann Problem to include a reaction term.
 """
-
 
 from __future__ import division
 import numpy as np

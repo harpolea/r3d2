@@ -9,6 +9,7 @@ Modules
 
 .. automodule:: SR1d
 
+
 Classes
 ================
 
@@ -26,3 +27,5 @@ Functions
 ================
 
 .. autofunction:: SR1d.rarefaction_dwdp
+
+.. autofunction:: find_left_state.find_left
