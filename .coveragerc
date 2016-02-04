@@ -1,0 +1,9 @@
+# .coveragerc to control coverage.py
+
+[report]
+exclude_lines =
+    if __name__ == .__main__.:
+    def _repr_latex_
+    def latex_string
+    def _repr_png_
+    def _repr_svg_
