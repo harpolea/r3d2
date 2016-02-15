@@ -280,14 +280,13 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber,
     else:
         raise(NotImplementedError, "Do this")
 
-class Wave(object):
-    
-    wave_sections = []    
+class Wave(object):  
     
     def __init__(self, q_known, unknown_value, wavenumber, unknown_eos=None,
                  t_i=None):
         
         self.wavenumber = wavenumber
+        self.wave_sections = []
         
         if q_known.q is None:
             waves = build_inert_wave_section(q_known, unknown_value, 
