@@ -60,14 +60,14 @@ class RiemannProblem(object):
         ax = axs[0,0]
         for w in self.waves[0], self.waves[2]:
             if w.type == 'Rarefaction':
-                xi_end = numpy.linspace(w.wave_speed[0], w.wave_speed[1], 5)
+                xi_end = numpy.linspace(w.wavespeed[0], w.wavespeed[1], 5)
                 ax.fill_between([0, xi_end[0], xi_end[-1], 0],
                                 [0, 1, 1, 0], color='k', alpha=0.1)
                 for xi in xi_end:
                     ax.plot([0, xi], [0, 1], 'k-', linewidth=1)
             else:
-                ax.plot([0, w.wave_speed[0]], [0, 1], 'k-', linewidth=3)
-        ax.plot([0, self.waves[1].wave_speed[0]], [0, 1], 'k--', linewidth=1)
+                ax.plot([0, w.wavespeed[0]], [0, 1], 'k-', linewidth=3)
+        ax.plot([0, self.waves[1].wavespeed[0]], [0, 1], 'k--', linewidth=1)
         ax.set_xlim(-1, 1)
         ax.set_ylim(0, 1)
         ax.set_xlabel(r"$x$")

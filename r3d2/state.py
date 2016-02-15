@@ -13,7 +13,7 @@ class State(object):
     specific internal energy, as well as an equation of state.
     """
 
-    def __init__(self, rho, v, vt, eps, eos, label=None):
+    def __init__(self, rho, v, vt, eps, eos, q=None, label=None):
         r"""
         Constructor
 
@@ -30,6 +30,8 @@ class State(object):
             Specific internal energy :math:`\epsilon`
         eos : dictionary
             Equation of State
+        q : scalar
+            Energy available for reactions
         label : string
             Label for output purposes.
         """
@@ -38,6 +40,7 @@ class State(object):
         self.vt = vt
         self.eps = eps
         self.eos = eos
+        self.q = q
         self.W_lorentz = 1.0 / numpy.sqrt(1.0 - self.v**2 - self.vt**2)
         self.p = self.eos['p_from_rho_eps'](rho, eps)
         self.h = self.eos['h_from_rho_eps'](rho, eps)
@@ -112,11 +115,18 @@ class State(object):
         """
         Helper function to represent the state as a string.
         """
-        s = r"\begin{pmatrix} \rho \\ v_x \\ v_t \\ \epsilon \end{pmatrix}"
+        if self.q:
+            s = r"\begin{pmatrix} \rho \\ v_x \\ v_t \\ \epsilon \\ q \end{pmatrix}"
+        else:
+            s = r"\begin{pmatrix} \rho \\ v_x \\ v_t \\ \epsilon \end{pmatrix}"
         if self.label:
             s += r"_{{{}}} = ".format(self.label)
-        s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(\
-        self.rho, self.v, self.vt, self.eps)
+        if self.q:
+            s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(\
+            self.rho, self.v, self.vt, self.eps, self.q)
+        else:
+            s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(\
+            self.rho, self.v, self.vt, self.eps)
         return s
 
     def _repr_latex_(self):
