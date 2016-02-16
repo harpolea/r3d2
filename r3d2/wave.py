@@ -103,10 +103,7 @@ def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
 
 def precursor_root(p_0_star, q_known, t_i, wavenumber):
     shock = Shock(q_known, p_0_star, wavenumber)
-    if wavenumber == 0:
-        q_precursor = shock.q_r
-    else:
-        q_precursor = shock.q_l
+    q_precursor = shock.q_end
     t_precursor = q_precursor.eos['t_from_rho_eps'](
                     q_precursor.rho, q_precursor.eps)
     return t_precursor - t_i
@@ -247,7 +244,9 @@ class Shock(WaveSection):
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Shock "\
         "must be in 0, 2"
-        assert(q_start.p <= p_end), "For a shock, p_start <= p_end"
+        # As we use the Shock code for deflagration checks, we can't apply
+        # this check
+        #assert(q_start.p <= p_end), "For a shock, p_start <= p_end"
         self.type = "Shock"
         self.wavenumber = wavenumber
         lr_sign = self.wavenumber - 1
@@ -353,7 +352,7 @@ class Deflagration(WaveSection):
                 p_cjdf = brentq(deflagration_root, (1.0+1e-9)*p_end,
                                 (1.0-1e-9)*q_start.p,
                                 args=(q_start, eos_end, self.wavenumber, t_i))
-                j2, rho, eps, dp = self.mass_flux_squared(q_start, p_cjdf, eos_end)
+                j2, rho, eps, dp = mass_flux_squared(q_start, p_cjdf, eos_end)
                 j = numpy.sqrt(j2)
                 v_deflagration = (q_start.rho**2 *
                     q_start.W_lorentz**2 * q_start.v + \
@@ -537,7 +536,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber,
     
                 if t_max <= 0:
                     p_max *= 2
-                    t_max = precursor_root(p_max)
+                    t_max = precursor_root(p_max, q_known, t_i, wavenumber)
     
                 p_0_star = brentq(precursor_root, p_min, p_max,
                                   args=(q_known, t_i, wavenumber))
@@ -588,11 +587,13 @@ class Wave(object):
         if q_known.q is None:
             waves = build_inert_wave_section(q_known, unknown_value, 
                                              wavenumber)
-            self.wave_sections.append(waves)
+            for sections in waves:
+                self.wave_sections.append(sections)
         else:
             waves = build_reactive_wave_section(q_known, unknown_value,
                                                 wavenumber, unknown_eos, t_i)
-            self.wave_sections.append(waves)
+            for sections in waves:
+                self.wave_sections.append(sections)
 
         if wavenumber == 0:
             self.q_l = deepcopy(q_known)
