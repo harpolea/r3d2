@@ -102,7 +102,7 @@ def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
     return q_unknown.wavespeed(wavenumber) - v_deflagration
 
 def precursor_root(p_0_star, q_known, t_i, wavenumber):
-    shock = Wave(q_known, p_0_star, wavenumber)
+    shock = Shock(q_known, p_0_star, wavenumber)
     if wavenumber == 0:
         q_precursor = shock.q_r
     else:
@@ -516,29 +516,36 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber,
         return Contact(q_known, unknown_value, wavenumber)
     else:
         wavesections = []
-        t_known = q_known.eos['t_from_rho_eps'](q_known.rho, q_known.eps)
-        if t_known < t_i: # Need a precursor shock
-            p_min = unknown_value
-            p_max = q_known.p
-            t_min = precursor_root(p_min, q_known, t_i, wavenumber)
-            t_max = precursor_root(p_max, q_known, t_i, wavenumber)
-            assert(t_min < 0)
-
-            if t_max <= 0:
-                p_max *= 2
-                t_max = precursor_root(p_max)
-
-            p_0_star = brentq(precursor_root, p_min, p_max,
-                              args=(q_known, t_i, wavenumber))
-            precursor_shock = Shock(q_known, p_0_star, wavenumber)
-            wavesections.append(precursor_shock)
-            q_next = precursor_shock.q_end
-        else: # No precursor shock
-            q_next = deepcopy(q_known)
         if q_known.p < unknown_value:
-            # Next, the detonation wave
-            raise(NotImplementedError, "Do this (detonation)")
+            # The detonation wave
+            detonation = Detonation(q_known, unknown_value, wavenumber,
+                                        unknown_eos, t_i)
+            wavesections.append(detonation)
+            q_next = deepcopy(detonation.q_end)
+            # Finally, was it a CJ detonation?
+            if q_next.p > unknown_value:
+                rarefaction = Rarefaction(q_next, unknown_value, wavenumber)
+                wavesections.append(rarefaction)
         else:
+            t_known = q_known.eos['t_from_rho_eps'](q_known.rho, q_known.eps)
+            if t_known < t_i: # Need a precursor shock
+                p_min = unknown_value
+                p_max = q_known.p
+                t_min = precursor_root(p_min, q_known, t_i, wavenumber)
+                t_max = precursor_root(p_max, q_known, t_i, wavenumber)
+                assert(t_min < 0)
+    
+                if t_max <= 0:
+                    p_max *= 2
+                    t_max = precursor_root(p_max)
+    
+                p_0_star = brentq(precursor_root, p_min, p_max,
+                                  args=(q_known, t_i, wavenumber))
+                precursor_shock = Shock(q_known, p_0_star, wavenumber)
+                wavesections.append(precursor_shock)
+                q_next = precursor_shock.q_end
+            else: # No precursor shock
+                q_next = deepcopy(q_known)
             # Next, the deflagration wave
             deflagration = Deflagration(q_next, unknown_value, wavenumber,
                                         unknown_eos, t_i)
