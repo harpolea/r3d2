@@ -22,7 +22,7 @@ class RiemannProblem(object):
     Uses the State class.
     """
 
-    def __init__(self, state_l, state_r):
+    def __init__(self, state_l, state_r, eos_burnt=None, t_i=None):
         """
         Constructor
         """
@@ -36,8 +36,8 @@ class RiemannProblem(object):
 
         def find_delta_v(p_star_guess):
 
-            wave_l = Wave(self.state_l, p_star_guess, 0)
-            wave_r = Wave(self.state_r, p_star_guess, 2)
+            wave_l = Wave(self.state_l, p_star_guess, 0, eos_burnt, t_i)
+            wave_r = Wave(self.state_r, p_star_guess, 2, eos_burnt, t_i)
 
             return wave_l.q_r.v - wave_r.q_l.v
 
@@ -48,8 +48,8 @@ class RiemannProblem(object):
             pmax *= 2.0
 
         self.p_star = brentq(find_delta_v, 0.9*pmin, 1.1*pmax)
-        wave_l = Wave(self.state_l, self.p_star, 0)
-        wave_r = Wave(self.state_r, self.p_star, 2)
+        wave_l = Wave(self.state_l, self.p_star, 0, eos_burnt, t_i)
+        wave_r = Wave(self.state_r, self.p_star, 2, eos_burnt, t_i)
         self.state_star_l = wave_l.q_r
         self.state_star_r = wave_r.q_l
         self.waves = [wave_l,

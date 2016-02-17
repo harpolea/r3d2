@@ -9,7 +9,7 @@ import numpy
 from scipy.optimize import brentq
 from scipy.integrate import odeint
 from copy import deepcopy
-from state import State
+from .state import State
 
 def rarefaction_dwdp(w, p, q_known, wavenumber):
     r"""
@@ -199,7 +199,7 @@ class Rarefaction(WaveSection):
         if numpy.allclose(q_start.p, p_end):
             self.trivial = True
             self.q_end = State(q_start.rho, q_start.v, q_start.vt, q_start.eps,
-            q_start.eos, label)
+            q_start.eos, label=label)
             v_unknown = v_known
         else:
             w_all = odeint(rarefaction_dwdp,
@@ -208,7 +208,7 @@ class Rarefaction(WaveSection):
                            args=((q_start, self.wavenumber)))
             self.q_end = State(w_all[-1, 0], w_all[-1, 1],
                               q_start.vt_from_known(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2]),
-                              w_all[-1, 2], q_start.eos, label)
+                              w_all[-1, 2], q_start.eos, label=label)
             v_unknown = self.q_end.wavespeed(self.wavenumber)
 
         self.wavespeed = []
@@ -263,7 +263,7 @@ class Shock(WaveSection):
         if numpy.allclose(q_start.p, p_end):
             self.trivial = True
             self.q_end = State(q_start.rho, q_start.v, q_start.vt, q_start.eps,
-            q_start.eos, label)
+            q_start.eos, label=label)
             v_shock = q_start.wavespeed(self.wavenumber)
         else:
             j2, rho, eps, dp = mass_flux_squared(q_start, p_end, 
@@ -278,7 +278,7 @@ class Shock(WaveSection):
                 (q_start.h * q_start.W_lorentz + dp * (1.0 / q_start.rho / q_start.W_lorentz + \
                 lr_sign * q_start.v * W_lorentz_shock / j))
             vt = q_start.vt_from_known(rho, v, eps)
-            self.q_end = State(rho, v, vt, eps, q_start.eos, label)
+            self.q_end = State(rho, v, vt, eps, q_start.eos, label=label)
 
         self.wavespeed = numpy.array([v_shock, v_shock])
         
@@ -290,6 +290,7 @@ class Shock(WaveSection):
         
         return xi, data
 
+# TODO: Check that q is correctly initialized across each wave in det, defl.
 class Deflagration(WaveSection):
     
     def __init__(self, q_start, p_end, wavenumber, eos_end, t_i):
@@ -322,7 +323,7 @@ class Deflagration(WaveSection):
         if numpy.allclose(q_start.p, p_end):
             self.trivial = True
             self.q_end = State(q_start.rho, q_start.v, q_start.vt, q_start.eps,
-            eos_end, label)
+            eos_end, label=label)
             v_deflagration = v_known
         else:
             # This is a single deflagration, so the start state must be at the
@@ -343,7 +344,7 @@ class Deflagration(WaveSection):
                   q_start.rho / q_start.W_lorentz + \
                  lr_sign * q_start.v * W_lorentz_deflagration / j))
             vt = q_start.vt_from_known(rho, v, eps)
-            q_unknown = State(rho, v, vt, eps, eos_end, label)
+            q_unknown = State(rho, v, vt, eps, eos_end, label=label)
 
             # If the speed in the unknown state means the characteristics are
             # not going into the deflagration, then this is an unstable strong
@@ -368,7 +369,7 @@ class Deflagration(WaveSection):
                      q_start.rho / q_start.W_lorentz + \
                      lr_sign * q_start.v * W_lorentz_deflagration / j))
                 vt = q_start.vt_from_known(rho, v, eps)
-                q_unknown = State(rho, v, vt, eps, eos_end, label)
+                q_unknown = State(rho, v, vt, eps, eos_end, label=label)
                 self.name = r"{\cal CJDF}"
                 if self.wavenumber == 0:
                     label = r"\star_L"
@@ -422,7 +423,7 @@ class Detonation(WaveSection):
         if numpy.allclose(q_start.p, p_end):
             self.trivial = True
             self.q_end = State(q_start.rho, q_start.v, q_start.vt, q_start.eps,
-            eos_end, label)
+            eos_end, label=label)
             v_detonation = v_known
         else:
             # This is a single detonation, so the start state must be at the
@@ -443,7 +444,7 @@ class Detonation(WaveSection):
                   q_start.rho / q_start.W_lorentz + \
                  lr_sign * q_start.v * W_lorentz_detonation / j))
             vt = q_start.vt_from_known(rho, v, eps)
-            q_unknown = State(rho, v, vt, eps, eos_end, label)
+            q_unknown = State(rho, v, vt, eps, eos_end, label=label)
 
             # If the speed in the unknown state means the characteristics are
             # not going into the detonation, then this is an unstable weak
@@ -471,7 +472,7 @@ class Detonation(WaveSection):
                      q_start.rho / q_start.W_lorentz + \
                      lr_sign * q_start.v * W_lorentz_detonation / j))
                 vt = q_start.vt_from_known(rho, v, eps)
-                q_unknown = State(rho, v, vt, eps, eos_end, label)
+                q_unknown = State(rho, v, vt, eps, eos_end, label=label)
                 self.name = r"{\cal CJDT}"
                 if self.wavenumber == 0:
                     label = r"\star_L"
@@ -499,11 +500,11 @@ def build_inert_wave_section(q_known, unknown_value, wavenumber):
     """
     
     if wavenumber == 1:
-        return Contact(q_known, unknown_value, wavenumber)
+        return [Contact(q_known, unknown_value, wavenumber)]
     elif q_known.p < unknown_value:
-        return Shock(q_known, unknown_value, wavenumber)
+        return [Shock(q_known, unknown_value, wavenumber)]
     else:
-        return Rarefaction(q_known, unknown_value, wavenumber)
+        return [Rarefaction(q_known, unknown_value, wavenumber)]
         
 def build_reactive_wave_section(q_known, unknown_value, wavenumber, 
                                 unknown_eos, t_i):
@@ -518,7 +519,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber,
         if q_known.p < unknown_value:
             # The detonation wave
             detonation = Detonation(q_known, unknown_value, wavenumber,
-                                        unknown_eos, t_i)
+                                    unknown_eos, t_i)
             wavesections.append(detonation)
             q_next = deepcopy(detonation.q_end)
             # Finally, was it a CJ detonation?
@@ -543,6 +544,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber,
                 precursor_shock = Shock(q_known, p_0_star, wavenumber)
                 wavesections.append(precursor_shock)
                 q_next = precursor_shock.q_end
+                q_next.q = q_known.q # No reaction across inert precursor
             else: # No precursor shock
                 q_next = deepcopy(q_known)
             # Next, the deflagration wave
@@ -595,6 +597,7 @@ class Wave(object):
             for sections in waves:
                 self.wave_sections.append(sections)
 
+        self.name = self.wave_sections_latex_string()
         if wavenumber == 0:
             self.q_l = deepcopy(q_known)
             if self.wave_sections:
@@ -622,17 +625,25 @@ class Wave(object):
         
         return xi_wave, data_wave
     
-    def latex_string(self):
+    def wave_sections_latex_string(self):
         if len(self.wave_sections)==0:
             return ""
         elif len(self.wave_sections)==1:
             s = self.wave_sections[0].latex_string()
-            speeds = self.wave_sections[0].wavespeed
         else:
             s = r"\left("
             for wavesection in self.wave_sections:
                 s += wavesection.name
             s += r"\right) "
+        return s
+        
+    def latex_string(self):
+        s = self.wave_sections_latex_string()
+        if len(self.wave_sections)==0:
+            return ""
+        elif len(self.wave_sections)==1:
+            speeds = self.wave_sections[0].wavespeed
+        else:
             speeds = [self.wave_sections[0].wavespeed[0],
                       self.wave_sections[-1].wavespeed[-1]]
         s += r": \lambda^{{({})}}".format(self.wavenumber)
