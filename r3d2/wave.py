@@ -218,7 +218,8 @@ class Rarefaction(WaveSection):
             self.wavespeed = numpy.array([v_unknown, v_known])
     
     def plotting_data(self):
-        p = numpy.linspace(self.q_start.p, self.q_end.p)
+        # TODO: make the number of points in the rarefaction plot a parameter
+        p = numpy.linspace(self.q_start.p, self.q_end.p, 500)
         w_all = odeint(rarefaction_dwdp,
                        numpy.array([self.q_start.rho, self.q_start.v, self.q_start.eps]),
                            p, rtol = 1e-12, atol = 1e-10,
@@ -280,13 +281,12 @@ class Shock(WaveSection):
             vt = q_start.vt_from_known(rho, v, eps)
             self.q_end = State(rho, v, vt, eps, q_start.eos, label=label)
 
-        self.wavespeed = numpy.array([v_shock, v_shock])
+        self.wavespeed = numpy.array([v_shock])
         
     def plotting_data(self):
         
         data = numpy.vstack((self.q_start.state(), self.q_end.state()))
-        xi = numpy.array([self.q_start.wavespeed(self.wavenumber),
-                       self.q_start.wavespeed(self.wavenumber)])
+        xi = numpy.array([self.wavespeed[0], self.wavespeed[0]])
         
         return xi, data
 
@@ -623,7 +623,8 @@ class Wave(object):
                     minspeed = min(speed, minspeed)
                     maxspeed = max(speed, maxspeed)
         self.wavespeed.append(minspeed)
-        self.wavespeed.append(maxspeed)
+        if not numpy.allclose(minspeed, maxspeed):
+            self.wavespeed.append(maxspeed)
             
     def plotting_data(self):
         
@@ -633,6 +634,9 @@ class Wave(object):
             xi_section, data_section = wavesection.plotting_data()
             xi_wave = numpy.hstack((xi_wave, xi_section))
             data_wave = numpy.vstack((data_wave, data_section))
+        
+        if self.wavenumber == 2:
+            data_wave = data_wave[-1::-1,:]
         
         return xi_wave, data_wave
     
