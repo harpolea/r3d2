@@ -585,6 +585,7 @@ class Wave(object):
         
         self.wavenumber = wavenumber
         self.wave_sections = []
+        self.wavespeed = []
         
         if q_known.q is None:
             waves = build_inert_wave_section(q_known, unknown_value, 
@@ -614,10 +615,20 @@ class Wave(object):
             else:
                 self.q_l = deepcopy(self.q_r)
     
+        minspeed = 10
+        maxspeed = -10
+        if self.wave_sections:
+            for wavesection in self.wave_sections:
+                for speed in wavesection.wavespeed:
+                    minspeed = min(speed, minspeed)
+                    maxspeed = max(speed, maxspeed)
+        self.wavespeed.append(minspeed)
+        self.wavespeed.append(maxspeed)
+            
     def plotting_data(self):
         
         xi_wave = numpy.zeros((0,))
-        data_wave = numpy.zeros((8,0))
+        data_wave = numpy.zeros((0,8))
         for wavesection in self.wave_sections:
             xi_section, data_section = wavesection.plotting_data()
             xi_wave = numpy.hstack((xi_wave, xi_section))
@@ -653,18 +664,3 @@ class Wave(object):
     def _repr_latex_(self):
         s = r"$" + self.latex_string() + r"$"
         return s
-
-if __name__ == "__main__":
-    
-    import eos_defns
-    
-    q_burnt = 0.0
-    q_unburnt = 0.1
-    gamma = 5/3
-    Cv = 1.0
-    t_i = 2
-    eos_burnt = eos_defns.eos_gamma_law_react(gamma, q_burnt, Cv)
-    eos_unburnt = eos_defns.eos_gamma_law_react(gamma, q_unburnt, Cv)
-    q_left = State(1, 0, 0, 2, eos_burnt)
-    q_right = State(1, 0, 0, 2, eos_unburnt, q=q_unburnt)
-    w_right = Wave(q_right, 0.001*q_right.p, 2, eos_burnt, t_i)
