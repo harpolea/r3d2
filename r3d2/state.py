@@ -40,6 +40,8 @@ class State(object):
         self.eos = eos
         if 'q_available' in self.eos:
             self.q = self.eos['q_available']
+        else:
+            self.q = None
         self.W_lorentz = 1.0 / numpy.sqrt(1.0 - self.v**2 - self.vt**2)
         self.p = self.eos['p_from_rho_eps'](rho, eps)
         self.h = self.eos['h_from_rho_eps'](rho, eps)

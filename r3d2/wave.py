@@ -124,7 +124,7 @@ class WaveSection(object):
         if self.trivial:
             return ""
         else:
-            s = self.name
+            s = deepcopy(self.name)
             s += r": \lambda^{{({})}}".format(self.wavenumber)
             if len(self.wavespeed) > 1:
                 s += r"\in [{:.4f}, {:.4f}]".format(self.wavespeed[0],
@@ -648,11 +648,15 @@ class Wave(object):
         if len(self.wave_sections)==0:
             return ""
         elif len(self.wave_sections)==1:
-            s = self.wave_sections[0].latex_string()
+            s = self.wave_sections[0].name
         else:
             s = r"\left("
-            for wavesection in self.wave_sections:
-                s += wavesection.name
+            if self.wavenumber == 2:
+                for wavesection in reversed(self.wave_sections):
+                    s += wavesection.name
+            else:
+                for wavesection in self.wave_sections:
+                    s += wavesection.name
             s += r"\right) "
         return s
         
