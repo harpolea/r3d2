@@ -13,7 +13,7 @@ class State(object):
     specific internal energy, as well as an equation of state.
     """
 
-    def __init__(self, rho, v, vt, eps, eos, q=None, label=None):
+    def __init__(self, rho, v, vt, eps, eos, label=None):
         r"""
         Constructor
 
@@ -30,8 +30,6 @@ class State(object):
             Specific internal energy :math:`\epsilon`
         eos : dictionary
             Equation of State
-        q : scalar
-            Energy available for reactions
         label : string
             Label for output purposes.
         """
@@ -40,7 +38,8 @@ class State(object):
         self.vt = vt
         self.eps = eps
         self.eos = eos
-        self.q = q
+        if 'q_available' in self.eos:
+            self.q = self.eos['q_available']
         self.W_lorentz = 1.0 / numpy.sqrt(1.0 - self.v**2 - self.vt**2)
         self.p = self.eos['p_from_rho_eps'](rho, eps)
         self.h = self.eos['h_from_rho_eps'](rho, eps)

@@ -19,7 +19,7 @@ def eos_gamma_law(gamma):
 
     return eos
 
-def eos_gamma_law_react(gamma, q, Cv):
+def eos_gamma_law_react(gamma, q, Cv, t_i, eos_inert):
 
     p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * (eps - q)
     h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps + (1.0 - gamma) * q
@@ -33,7 +33,10 @@ def eos_gamma_law_react(gamma, q, Cv):
            'h_from_rho_eps' : h_from_rho_eps,
            'cs_from_rho_eps' : cs_from_rho_eps,
            'h_from_rho_p' : h_from_rho_p,
-           't_from_rho_eps' : t_from_rho_eps}
+           't_from_rho_eps' : t_from_rho_eps,
+           'q_available' : q,
+           't_ignition' : t_i,
+           'eos_inert' : eos_inert}
 
     return eos
 

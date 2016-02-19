@@ -293,11 +293,14 @@ class Shock(WaveSection):
 # TODO: Check that q is correctly initialized across each wave in det, defl.
 class Deflagration(WaveSection):
     
-    def __init__(self, q_start, p_end, wavenumber, eos_end, t_i):
+    def __init__(self, q_start, p_end, wavenumber):
         """
         A deflagration.
         """
         
+        eos_end = q_start.eos['eos_inert']
+        t_i = q_start.eos['t_ignition']
+
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Deflagration "\
         "must be in 0, 2"
@@ -309,7 +312,7 @@ class Deflagration(WaveSection):
         self.wavenumber = wavenumber
         lr_sign = self.wavenumber - 1
         self.q_start = deepcopy(q_start)
-
+        
         self.name = r"{\cal WDF}"
         if self.wavenumber == 0:
             label = r"\star_L"
@@ -393,11 +396,14 @@ class Deflagration(WaveSection):
 
 class Detonation(WaveSection):
     
-    def __init__(self, q_start, p_end, wavenumber, eos_end, t_i):
+    def __init__(self, q_start, p_end, wavenumber):
         """
         A detonation.
         """
         
+        eos_end = q_start.eos['eos_inert']
+        t_i = q_start.eos['t_ignition']
+
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Detonation "\
         "must be in 0, 2"
@@ -506,11 +512,12 @@ def build_inert_wave_section(q_known, unknown_value, wavenumber):
     else:
         return [Rarefaction(q_known, unknown_value, wavenumber)]
         
-def build_reactive_wave_section(q_known, unknown_value, wavenumber, 
-                                unknown_eos, t_i):
+def build_reactive_wave_section(q_known, unknown_value, wavenumber):
     """
     Object factory for the WaveSection; reactive case
     """
+    
+    t_i = q_known.eos['t_ignition']    
     
     if wavenumber == 1:
         return Contact(q_known, unknown_value, wavenumber)
@@ -518,8 +525,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber,
         wavesections = []
         if q_known.p < unknown_value:
             # The detonation wave
-            detonation = Detonation(q_known, unknown_value, wavenumber,
-                                    unknown_eos, t_i)
+            detonation = Detonation(q_known, unknown_value, wavenumber)
             wavesections.append(detonation)
             q_next = deepcopy(detonation.q_end)
             # Finally, was it a CJ detonation?
@@ -548,8 +554,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber,
             else: # No precursor shock
                 q_next = deepcopy(q_known)
             # Next, the deflagration wave
-            deflagration = Deflagration(q_next, unknown_value, wavenumber,
-                                        unknown_eos, t_i)
+            deflagration = Deflagration(q_next, unknown_value, wavenumber)
             wavesections.append(deflagration)
             q_next = deepcopy(deflagration.q_end)
             # Finally, was it a CJ deflagration?
@@ -562,8 +567,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber,
 
 class Wave(object):  
     
-    def __init__(self, q_known, unknown_value, wavenumber, unknown_eos=None,
-                 t_i=None):
+    def __init__(self, q_known, unknown_value, wavenumber):
         """
         A wave.
         
@@ -587,14 +591,14 @@ class Wave(object):
         self.wave_sections = []
         self.wavespeed = []
         
-        if q_known.q is None:
+        if 'q_available' not in q_known.eos:
             waves = build_inert_wave_section(q_known, unknown_value, 
                                              wavenumber)
             for sections in waves:
                 self.wave_sections.append(sections)
         else:
             waves = build_reactive_wave_section(q_known, unknown_value,
-                                                wavenumber, unknown_eos, t_i)
+                                                wavenumber)
             for sections in waves:
                 self.wave_sections.append(sections)
 
