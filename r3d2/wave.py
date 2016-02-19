@@ -53,7 +53,7 @@ def mass_flux_squared(q_start, p_end, unknown_eos=None):
         max_rho = numpy.sqrt(p_end/q_start.p) * q_start.rho
         shock_root_max = shock_root_rho(max_rho)
         while(shock_root_min * shock_root_max > 0.0):
-            min_rho /= 1.1 # Not sure - could end up with unphysical root?
+            min_rho /= 1.001 # Not sure - could end up with unphysical root?
             max_rho *= 10.0
             shock_root_min = shock_root_rho(min_rho)
             shock_root_max = shock_root_rho(max_rho)
@@ -65,11 +65,12 @@ def mass_flux_squared(q_start, p_end, unknown_eos=None):
         shock_root_min = shock_root_rho(min_rho)
         while(shock_root_min * shock_root_max > 0.0):
             min_rho /= 10.0 # Not sure - could end up with unphysical root?
-            max_rho *= 1.1
+            max_rho *= 1.001
             shock_root_min = shock_root_rho(min_rho)
             shock_root_max = shock_root_rho(max_rho)
     rho = brentq(shock_root_rho, min_rho, max_rho)
     h = unknown_eos['h_from_rho_p'](rho, p_end)
+#    print("Mass flux function, rho={}, h={} ({},{})".format(rho, h, q_start.rho, q_start.h))
     eps = h - 1.0 - p_end / rho
     dp = p_end - q_start.p
     dh2 = h**2 - q_start.h**2
@@ -80,6 +81,9 @@ def mass_flux_squared(q_start, p_end, unknown_eos=None):
 def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
     lr_sign = wavenumber - 1    
     j2, rho, eps, dp = mass_flux_squared(q_precursor, p_0_star, unknown_eos)
+#    print("Deflagration root (p: {}) {}".format(p_0_star, j2))
+    if j2 < 0:
+        return 10.0 # Unphysical part of Crussard curve, return a random number
     j = numpy.sqrt(j2)
     v_deflagration = (q_precursor.rho**2 *
         q_precursor.W_lorentz**2 * q_precursor.v + \
@@ -196,11 +200,14 @@ class Rarefaction(WaveSection):
 
         v_known = q_start.wavespeed(self.wavenumber)
 
+        self.wavespeed = []
+        
         if numpy.allclose(q_start.p, p_end):
             self.trivial = True
             self.q_end = State(q_start.rho, q_start.v, q_start.vt, q_start.eps,
             q_start.eos, label=label)
             v_unknown = v_known
+            self.name = ""
         else:
             w_all = odeint(rarefaction_dwdp,
                            numpy.array([q_start.rho, q_start.v, q_start.eps]),
@@ -210,28 +217,30 @@ class Rarefaction(WaveSection):
                               q_start.vt_from_known(w_all[-1, 0], w_all[-1, 1], w_all[-1, 2]),
                               w_all[-1, 2], q_start.eos, label=label)
             v_unknown = self.q_end.wavespeed(self.wavenumber)
-
-        self.wavespeed = []
-        if self.wavenumber == 0:
-            self.wavespeed = numpy.array([v_known, v_unknown])
-        else:
-            self.wavespeed = numpy.array([v_unknown, v_known])
+            if self.wavenumber == 0:
+                self.wavespeed = numpy.array([v_known, v_unknown])
+            else:
+                self.wavespeed = numpy.array([v_unknown, v_known])
     
     def plotting_data(self):
         # TODO: make the number of points in the rarefaction plot a parameter
-        p = numpy.linspace(self.q_start.p, self.q_end.p, 500)
-        w_all = odeint(rarefaction_dwdp,
-                       numpy.array([self.q_start.rho, self.q_start.v, self.q_start.eps]),
-                           p, rtol = 1e-12, atol = 1e-10,
-                           args=(self.q_start, self.wavenumber))
-        data = numpy.zeros((len(p),8))
-        xi = numpy.zeros_like(p)
-        for i in range(len(p)):
-            state = State(w_all[i,0], w_all[i,1],
-                          self.q_start.vt_from_known(w_all[i,0], w_all[i,1], w_all[i,2]),
-                          w_all[i, 2], self.q_start.eos)
-            xi[i] = state.wavespeed(self.wavenumber)
-            data[i,:] = state.state()
+        if self.trivial:
+            xi = numpy.zeros((0,))
+            data = numpy.zeros((0,8))
+        else:
+            p = numpy.linspace(self.q_start.p, self.q_end.p, 500)
+            w_all = odeint(rarefaction_dwdp,
+                           numpy.array([self.q_start.rho, self.q_start.v, self.q_start.eps]),
+                               p, rtol = 1e-12, atol = 1e-10,
+                               args=(self.q_start, self.wavenumber))
+            data = numpy.zeros((len(p),8))
+            xi = numpy.zeros_like(p)
+            for i in range(len(p)):
+                state = State(w_all[i,0], w_all[i,1],
+                              self.q_start.vt_from_known(w_all[i,0], w_all[i,1], w_all[i,2]),
+                              w_all[i, 2], self.q_start.eos)
+                xi[i] = state.wavespeed(self.wavenumber)
+                data[i,:] = state.state()
         
         return xi, data
 
@@ -266,6 +275,7 @@ class Shock(WaveSection):
             self.q_end = State(q_start.rho, q_start.v, q_start.vt, q_start.eps,
             q_start.eos, label=label)
             v_shock = q_start.wavespeed(self.wavenumber)
+            self.name = ""
         else:
             j2, rho, eps, dp = mass_flux_squared(q_start, p_end, 
                                                       q_start.eos)
@@ -281,7 +291,7 @@ class Shock(WaveSection):
             vt = q_start.vt_from_known(rho, v, eps)
             self.q_end = State(rho, v, vt, eps, q_start.eos, label=label)
 
-        self.wavespeed = numpy.array([v_shock])
+        self.wavespeed = [v_shock]
         
     def plotting_data(self):
         
@@ -330,6 +340,7 @@ class Deflagration(WaveSection):
             self.q_end = State(q_start.rho, q_start.v, q_start.vt, q_start.eps,
             eos_end, label=label)
             v_deflagration = v_known
+            self.name = ""
         else:
             # This is a single deflagration, so the start state must be at the
             # reaction temperature already.
@@ -355,6 +366,7 @@ class Deflagration(WaveSection):
             # not going into the deflagration, then this is an unstable strong
             # deflagration
             if (lr_sign*(q_unknown.wavespeed(self.wavenumber) - v_deflagration) < 0):
+#                print("Deflagration root (p: {}, {})".format(p_end, q_start.p))
                 p_cjdf = brentq(deflagration_root, (1.0+1e-9)*p_end,
                                 (1.0-1e-9)*q_start.p,
                                 args=(q_start, eos_end, self.wavenumber, t_i))
@@ -386,7 +398,7 @@ class Deflagration(WaveSection):
             self.q_end = deepcopy(q_unknown)
 
 
-        self.wavespeed = numpy.array([v_deflagration, v_deflagration])
+        self.wavespeed = [v_deflagration]
     
     def plotting_data(self):
         
@@ -433,26 +445,35 @@ class Detonation(WaveSection):
             self.q_end = State(q_start.rho, q_start.v, q_start.vt, q_start.eps,
             eos_end, label=label)
             v_detonation = v_known
+            self.name = ""
         else:
             # This is a single detonation, so the start state must be at the
             # reaction temperature already.
             j2, rho, eps, dp = mass_flux_squared(q_start, p_end, eos_end)
-            j = numpy.sqrt(j2)
-            v_detonation = (q_start.rho**2 *
-                q_start.W_lorentz**2 * q_start.v + \
-                lr_sign * j**2 * \
-                numpy.sqrt(1.0 + q_start.rho**2 *
-                q_start.W_lorentz**2 *
-                (1.0 - q_start.v**2) / j**2)) / \
-                (q_start.rho**2 * q_start.W_lorentz**2 + j**2)
-            W_lorentz_detonation = 1.0 / numpy.sqrt(1.0 - v_detonation**2)
-            v = (q_start.h * q_start.W_lorentz * q_start.v +
-                 lr_sign * dp * W_lorentz_detonation / j) / \
-                 (q_start.h * q_start.W_lorentz + dp * (1.0 /
-                  q_start.rho / q_start.W_lorentz + \
-                 lr_sign * q_start.v * W_lorentz_detonation / j))
-            vt = q_start.vt_from_known(rho, v, eps)
-            q_unknown = State(rho, v, vt, eps, eos_end, label=label)
+            if j2 < 0:
+                # The single detonation is unphysical - must be unstable weak
+                # detonation. So skip the calculation and make sure the CJ
+                # calculation runs
+#                print("Should be a CJ detonation")
+                q_unknown = deepcopy(q_start)
+                v_detonation = q_unknown.wavespeed(self.wavenumber) + lr_sign
+            else:
+                j = numpy.sqrt(j2)
+                v_detonation = (q_start.rho**2 *
+                    q_start.W_lorentz**2 * q_start.v + \
+                    lr_sign * j**2 * \
+                    numpy.sqrt(1.0 + q_start.rho**2 *
+                    q_start.W_lorentz**2 *
+                    (1.0 - q_start.v**2) / j**2)) / \
+                    (q_start.rho**2 * q_start.W_lorentz**2 + j**2)
+                W_lorentz_detonation = 1.0 / numpy.sqrt(1.0 - v_detonation**2)
+                v = (q_start.h * q_start.W_lorentz * q_start.v +
+                     lr_sign * dp * W_lorentz_detonation / j) / \
+                     (q_start.h * q_start.W_lorentz + dp * (1.0 /
+                      q_start.rho / q_start.W_lorentz + \
+                     lr_sign * q_start.v * W_lorentz_detonation / j))
+                vt = q_start.vt_from_known(rho, v, eps)
+                q_unknown = State(rho, v, vt, eps, eos_end, label=label)
 
             # If the speed in the unknown state means the characteristics are
             # not going into the detonation, then this is an unstable weak
@@ -461,9 +482,18 @@ class Detonation(WaveSection):
                 # NOTE: if this truly is the same function, then this whole
                 # set of code should be refactored, as it's essentially the
                 # same for deflagration and detonation.
-                p_cjdt = brentq(deflagration_root, (1.0+1e-9)*p_end,
-                                (1.0-1e-9)*q_start.p,
+#                print("Solving for CJ detonation")
+#                print("Detonation root, p {}, {}".format(p_end, q_start.p))
+                pmin = (1.0+1e-9)*min(q_start.p, p_end)
+                pmax = (1.0-1e-9)*max(q_start.p, p_end)
+                p_guess = numpy.linspace(pmin, pmax)
+                root_guess = numpy.zeros_like(p_guess)
+                for i, p in enumerate(p_guess):
+                    root_guess[i] = deflagration_root(p, q_start, eos_end, self.wavenumber, t_i)
+#                print(max(root_guess), min(root_guess))
+                p_cjdt = brentq(deflagration_root, pmin, pmax,
                                 args=(q_start, eos_end, self.wavenumber, t_i))
+#                print("CJ pressure {}".format(p_cjdt))
                 j2, rho, eps, dp = mass_flux_squared(q_start, p_cjdt, eos_end)
                 j = numpy.sqrt(j2)
                 v_detonation = (q_start.rho**2 *
@@ -481,6 +511,7 @@ class Detonation(WaveSection):
                      lr_sign * q_start.v * W_lorentz_detonation / j))
                 vt = q_start.vt_from_known(rho, v, eps)
                 q_unknown = State(rho, v, vt, eps, eos_end, label=label)
+#                print("End of CJ, {}".format(q_unknown.prim()))
                 self.name = r"{\cal CJDT}"
                 if self.wavenumber == 0:
                     label = r"\star_L"
@@ -492,7 +523,7 @@ class Detonation(WaveSection):
             self.q_end = deepcopy(q_unknown)
 
 
-        self.wavespeed = numpy.array([v_detonation, v_detonation])
+        self.wavespeed = numpy.array([v_detonation])
     
     def plotting_data(self):
         
@@ -526,6 +557,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
     else:
         wavesections = []
         if q_known.p < unknown_value:
+#            print("Detonation {}, {}".format(q_known.p, unknown_value))
             # The detonation wave
             detonation = Detonation(q_known, unknown_value, wavenumber)
             wavesections.append(detonation)
@@ -535,6 +567,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
                 rarefaction = Rarefaction(q_next, unknown_value, wavenumber)
                 wavesections.append(rarefaction)
         else:
+#            print("Deflagration {}, {}".format(q_known.p, unknown_value))
             t_known = q_known.eos['t_from_rho_eps'](q_known.rho, q_known.eps)
             if t_known < t_i: # Need a precursor shock
                 p_min = unknown_value
@@ -595,11 +628,13 @@ class Wave(object):
         self.wavespeed = []
         
         if 'q_available' not in q_known.eos:
+#            print("Building inert wave, {} ({})".format(unknown_value, wavenumber))
             waves = build_inert_wave_section(q_known, unknown_value, 
                                              wavenumber)
             for sections in waves:
                 self.wave_sections.append(sections)
         else:
+#            print("Building reactive wave, {} ({})".format(unknown_value, wavenumber))
             waves = build_reactive_wave_section(q_known, unknown_value,
                                                 wavenumber)
             for sections in waves:
@@ -648,32 +683,42 @@ class Wave(object):
         return xi_wave, data_wave
     
     def wave_sections_latex_string(self):
-        if len(self.wave_sections)==0:
-            return ""
-        elif len(self.wave_sections)==1:
-            s = self.wave_sections[0].name
-        else:
+        names = []
+        sections = deepcopy(self.wave_sections)
+        if self.wavenumber == 2:
+            sections.reverse()
+        for sec in sections:
+            if not sec.trivial:
+                names.append(sec.name)
+        s = ""
+        if len(names)==1:
+            s = names[0]
+        elif len(names)>1:
             s = r"\left("
-            if self.wavenumber == 2:
-                for wavesection in reversed(self.wave_sections):
-                    s += wavesection.name
-            else:
-                for wavesection in self.wave_sections:
-                    s += wavesection.name
+            for n in names:
+                s += n
             s += r"\right) "
         return s
         
     def latex_string(self):
         s = self.wave_sections_latex_string()
-        if len(self.wave_sections)==0:
+        speeds = []
+        sections = deepcopy(self.wave_sections)
+        if self.wavenumber == 2:
+            sections.reverse()
+        for sec in sections:
+            if not sec.trivial:
+                for speed in sec.wavespeed:
+                    speeds.append(speed)
+        if len(speeds) == 0:
             return ""
-        elif len(self.wave_sections)==1:
-            speeds = self.wave_sections[0].wavespeed
+        elif len(speeds) == 1:
+            s += r": \lambda^{{({})}}".format(self.wavenumber)
+            s += r"= {:.4f}".format(speeds[0])
         else:
-            speeds = [self.wave_sections[0].wavespeed[0],
-                      self.wave_sections[-1].wavespeed[-1]]
-        s += r": \lambda^{{({})}}".format(self.wavenumber)
-        s += r"\in [{:.4f}, {:.4f}]".format(min(speeds), max(speeds))
+            s += r": \lambda^{{({})}}".format(self.wavenumber)
+            s += r"\in [{:.4f}, {:.4f}]".format(min(speeds), max(speeds))
+            
         return s
         
     def _repr_latex_(self):

@@ -36,6 +36,7 @@ class RiemannProblem(object):
 
         def find_delta_v(p_star_guess):
 
+#            print("Solving RP, p_star_guess {}".format(p_star_guess))
             wave_l = Wave(self.state_l, p_star_guess, 0)
             wave_r = Wave(self.state_r, p_star_guess, 2)
 
