@@ -11,6 +11,7 @@ from scipy.integrate import odeint
 from copy import deepcopy
 from .state import State
 
+# NOTE: p is not used in function - get rid
 def rarefaction_dwdp(w, p, q_known, wavenumber):
     r"""
     There is a tricky point here that needs investigation. If
@@ -18,6 +19,18 @@ def rarefaction_dwdp(w, p, q_known, wavenumber):
     can diverge (when :math:`v_t` is significant) leading to overflows of g. By
     using local_state we avoid the overflow, but it may mean the final
     state is not very accurate.
+
+    Parameters
+    ----------
+
+    w : tuple
+        primitive state (rho, v, eps)
+    p : scalar
+        pressure
+    q_known : State
+        Known state
+    wavenumber : scalar
+        Wave number
     """
     lr_sign = wavenumber - 1
     dwdp = numpy.zeros_like(w)
@@ -35,8 +48,22 @@ def rarefaction_dwdp(w, p, q_known, wavenumber):
     dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / numpy.sqrt(1.0 + g)
     dwdp[2] = local_state.p / (rho**2 * h * cs**2)
     return dwdp
-    
+
 def mass_flux_squared(q_start, p_end, unknown_eos=None):
+    r"""
+    Calculates the square of the mass flux through a region, given the state at the start of the region and the pressure at the end.
+
+    Parameters
+    ----------
+
+    q_start : State
+        State at start of the region
+    p_end : scalar
+        Pressure at the end of the region
+    unknown_eos : dictionary, optional
+        Equation of state in the region (provided if different from EoS
+        of q_start)
+    """
 
     if unknown_eos is None:
         unknown_eos = q_start.eos
@@ -79,7 +106,7 @@ def mass_flux_squared(q_start, p_end, unknown_eos=None):
     return j2, rho, eps, dp
 
 def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
-    lr_sign = wavenumber - 1    
+    lr_sign = wavenumber - 1
     j2, rho, eps, dp = mass_flux_squared(q_precursor, p_0_star, unknown_eos)
 #    print("Deflagration root (p: {}) {}".format(p_0_star, j2))
     if j2 < 0:
@@ -112,18 +139,35 @@ def precursor_root(p_0_star, q_known, t_i, wavenumber):
                     q_precursor.rho, q_precursor.eps)
     return t_precursor - t_i
 
+# NOTE: all subclasses begin with initialising type, name, wavenumber etc.
+#       Can avoid some repeated code by passing these as arguments to
+#       superclass constructer and calling that.
+
+# NOTE: To avoid more repeated code: wave speed calculation appears to
+#       consist of one or two main parts - a shock wave bit and a burning
+#       wave bit. The code for these two sections is almost identical for
+#       all subclasses of WaveSection.
+#       Could therefore make define functions calculate_shock_speed and
+#       calculate_burning_speed for WaveSection class, which are then
+#       called by its subclasses
+
 class WaveSection(object):
-    
+
     def __init__(self, q_start, p_end, wavenumber):
         """
         A part of a wave. For a single shock or rarefaction, this will be the
         complete wave. For a deflagration or detonation, it may form part of
         the full wave.
         """
+        # NOTE: what does self.trivial mean?
         self.trivial = False
         assert(wavenumber in [0, 1, 2]), "wavenumber must be 0, 1, 2"
         self.wavenumber = wavenumber
-        
+        self.name = None
+        self.q_start = None
+        self.q_end = None
+        self.wavespeed = []
+
     def latex_string(self):
         if self.trivial:
             return ""
@@ -141,13 +185,25 @@ class WaveSection(object):
         s = r"$" + self.latex_string() + r"$"
         return s
 
+    def plotting_data(self):
+
+        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
+        xi = numpy.array([self.q_start.wavespeed(self.wavenumber),
+                       self.q_start.wavespeed(self.wavenumber)])
+
+        return xi, data
+
+# NOTE: this class has a different signature to all other subclasses of
+#       WaveSection (q_end rather than p_end). Might be more consistent
+#       to use the same signature for all subclasses - all could
+#       take argument q_end and access variable q_end.p.
 class Contact(WaveSection):
-    
+
     def __init__(self, q_start, q_end, wavenumber):
         """
         A contact.
         """
-        
+
         self.trivial = False
         assert(wavenumber in [1]), "wavenumber for a Contact must be 1"
         self.type = "Contact"
@@ -156,9 +212,9 @@ class Contact(WaveSection):
         self.q_end = deepcopy(q_end)
 
         self.name = r"{\cal C}"
-        
+
         self.wavespeed = [q_start.v]
-        
+
         assert(numpy.allclose(q_start.v, q_end.v)), "Velocities of states "\
         "must match for a contact"
         assert(numpy.allclose(q_start.p, q_end.p)), "Pressures of states "\
@@ -166,22 +222,22 @@ class Contact(WaveSection):
         assert(numpy.allclose(q_start.wavespeed(wavenumber),
                               q_end.wavespeed(wavenumber))), "Wavespeeds of "\
         "states must match for a contact"
-        
-    def plotting_data(self):
-        
-        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
-        xi = numpy.array([self.q_start.wavespeed(self.wavenumber),
-                       self.q_start.wavespeed(self.wavenumber)])
-        
-        return xi, data
-        
+
+    #def plotting_data(self):
+
+    #    data = numpy.vstack((self.q_start.state(), self.q_end.state()))
+    #    xi = numpy.array([self.q_start.wavespeed(self.wavenumber),
+    #                   self.q_start.wavespeed(self.wavenumber)])
+
+    #    return xi, data
+
 class Rarefaction(WaveSection):
-    
+
     def __init__(self, q_start, p_end, wavenumber):
         """
         A rarefaction.
         """
-        
+
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Rarefaction "\
         "must be in 0, 2"
@@ -201,7 +257,7 @@ class Rarefaction(WaveSection):
         v_known = q_start.wavespeed(self.wavenumber)
 
         self.wavespeed = []
-        
+
         if numpy.allclose(q_start.p, p_end):
             self.trivial = True
             self.q_end = State(q_start.rho, q_start.v, q_start.vt, q_start.eps,
@@ -221,7 +277,7 @@ class Rarefaction(WaveSection):
                 self.wavespeed = numpy.array([v_known, v_unknown])
             else:
                 self.wavespeed = numpy.array([v_unknown, v_known])
-    
+
     def plotting_data(self):
         # TODO: make the number of points in the rarefaction plot a parameter
         if self.trivial:
@@ -241,11 +297,11 @@ class Rarefaction(WaveSection):
                               w_all[i, 2], self.q_start.eos)
                 xi[i] = state.wavespeed(self.wavenumber)
                 data[i,:] = state.state()
-        
+
         return xi, data
 
 class Shock(WaveSection):
-    
+
     def __init__(self, q_start, p_end, wavenumber):
         """
         A shock.
@@ -277,7 +333,7 @@ class Shock(WaveSection):
             v_shock = q_start.wavespeed(self.wavenumber)
             self.name = ""
         else:
-            j2, rho, eps, dp = mass_flux_squared(q_start, p_end, 
+            j2, rho, eps, dp = mass_flux_squared(q_start, p_end,
                                                       q_start.eos)
             j = numpy.sqrt(j2)
             v_shock = (q_start.rho**2 * q_start.W_lorentz**2 * q_start.v + \
@@ -292,22 +348,22 @@ class Shock(WaveSection):
             self.q_end = State(rho, v, vt, eps, q_start.eos, label=label)
 
         self.wavespeed = [v_shock]
-        
+
     def plotting_data(self):
-        
+
         data = numpy.vstack((self.q_start.state(), self.q_end.state()))
         xi = numpy.array([self.wavespeed[0], self.wavespeed[0]])
-        
+
         return xi, data
 
 # TODO: Check that q is correctly initialized across each wave in det, defl.
 class Deflagration(WaveSection):
-    
+
     def __init__(self, q_start, p_end, wavenumber):
         """
         A deflagration.
         """
-        
+
         eos_end = q_start.eos['eos_inert']
         t_i = q_start.eos['t_ignition']
 
@@ -319,12 +375,12 @@ class Deflagration(WaveSection):
 #        assert(t_start >= t_i), "For a deflagration, temperature of start "\
 #        "state must be at least the ignition temperature"
         # TODO The above check should be true, but the root-find sometimes just
-        # misses. numpy allclose type check? 
+        # misses. numpy allclose type check?
         self.type = "Deflagration"
         self.wavenumber = wavenumber
         lr_sign = self.wavenumber - 1
         self.q_start = deepcopy(q_start)
-        
+
         self.name = r"{\cal WDF}"
         if self.wavenumber == 0:
             label = r"\star_L"
@@ -399,22 +455,22 @@ class Deflagration(WaveSection):
 
 
         self.wavespeed = [v_deflagration]
-    
-    def plotting_data(self):
-        
-        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
-        xi = numpy.array([self.q_start.wavespeed(self.wavenumber),
-                       self.q_start.wavespeed(self.wavenumber)])
-        
-        return xi, data
+
+    #def plotting_data(self):
+
+    #    data = numpy.vstack((self.q_start.state(), self.q_end.state()))
+    #    xi = numpy.array([self.q_start.wavespeed(self.wavenumber),
+    #                   self.q_start.wavespeed(self.wavenumber)])
+
+    #    return xi, data
 
 class Detonation(WaveSection):
-    
+
     def __init__(self, q_start, p_end, wavenumber):
         """
         A detonation.
         """
-        
+
         eos_end = q_start.eos['eos_inert']
         t_i = q_start.eos['t_ignition']
 
@@ -524,34 +580,34 @@ class Detonation(WaveSection):
 
 
         self.wavespeed = numpy.array([v_detonation])
-    
-    def plotting_data(self):
-        
-        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
-        xi = numpy.array([self.q_start.wavespeed(self.wavenumber),
-                       self.q_start.wavespeed(self.wavenumber)])
-        
-        return xi, data
+
+    #def plotting_data(self):
+
+    #    data = numpy.vstack((self.q_start.state(), self.q_end.state()))
+    #    xi = numpy.array([self.q_start.wavespeed(self.wavenumber),
+    #                   self.q_start.wavespeed(self.wavenumber)])
+
+    #    return xi, data
 
 def build_inert_wave_section(q_known, unknown_value, wavenumber):
     """
     Object factory for the WaveSection; non-reactive case
     """
-    
+
     if wavenumber == 1:
         return [Contact(q_known, unknown_value, wavenumber)]
     elif q_known.p < unknown_value:
         return [Shock(q_known, unknown_value, wavenumber)]
     else:
         return [Rarefaction(q_known, unknown_value, wavenumber)]
-        
+
 def build_reactive_wave_section(q_known, unknown_value, wavenumber):
     """
     Object factory for the WaveSection; reactive case
     """
-    
-    t_i = q_known.eos['t_ignition']    
-    
+
+    t_i = q_known.eos['t_ignition']
+
     if wavenumber == 1:
         return Contact(q_known, unknown_value, wavenumber)
     else:
@@ -575,11 +631,11 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
                 t_min = precursor_root(p_min, q_known, t_i, wavenumber)
                 t_max = precursor_root(p_max, q_known, t_i, wavenumber)
                 assert(t_min < 0)
-    
+
                 if t_max <= 0:
                     p_max *= 2
                     t_max = precursor_root(p_max, q_known, t_i, wavenumber)
-    
+
                 p_0_star = brentq(precursor_root, p_min, p_max,
                                   args=(q_known, t_i, wavenumber))
                 precursor_shock = Shock(q_known, p_0_star, wavenumber)
@@ -599,14 +655,14 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
                 wavesections.append(rarefaction)
 
         return wavesections
-        
 
-class Wave(object):  
-    
+
+class Wave(object):
+
     def __init__(self, q_known, unknown_value, wavenumber):
         """
         A wave.
-        
+
         Parameters
         ----------
 
@@ -622,14 +678,15 @@ class Wave(object):
         t_i : scalar
             temperature at which the state starts to react
         """
-        
+
+        # NOTE: it's not so clear what wavenumber is - change to something like a wavedirection variable which can be left/right/static?
         self.wavenumber = wavenumber
         self.wave_sections = []
         self.wavespeed = []
-        
+
         if 'q_available' not in q_known.eos:
 #            print("Building inert wave, {} ({})".format(unknown_value, wavenumber))
-            waves = build_inert_wave_section(q_known, unknown_value, 
+            waves = build_inert_wave_section(q_known, unknown_value,
                                              wavenumber)
             for sections in waves:
                 self.wave_sections.append(sections)
@@ -656,7 +713,7 @@ class Wave(object):
                 self.q_l = self.wave_sections[-1].q_end
             else:
                 self.q_l = deepcopy(self.q_r)
-    
+
         minspeed = 10
         maxspeed = -10
         if self.wave_sections:
@@ -667,21 +724,21 @@ class Wave(object):
         self.wavespeed.append(minspeed)
         if not numpy.allclose(minspeed, maxspeed):
             self.wavespeed.append(maxspeed)
-            
+
     def plotting_data(self):
-        
+
         xi_wave = numpy.zeros((0,))
         data_wave = numpy.zeros((0,8))
         for wavesection in self.wave_sections:
             xi_section, data_section = wavesection.plotting_data()
             xi_wave = numpy.hstack((xi_wave, xi_section))
             data_wave = numpy.vstack((data_wave, data_section))
-        
+
         if self.wavenumber == 2:
             data_wave = data_wave[-1::-1,:]
-        
+
         return xi_wave, data_wave
-    
+
     def wave_sections_latex_string(self):
         names = []
         sections = deepcopy(self.wave_sections)
@@ -699,7 +756,7 @@ class Wave(object):
                 s += n
             s += r"\right) "
         return s
-        
+
     def latex_string(self):
         s = self.wave_sections_latex_string()
         speeds = []
@@ -718,9 +775,9 @@ class Wave(object):
         else:
             s += r": \lambda^{{({})}}".format(self.wavenumber)
             s += r"\in [{:.4f}, {:.4f}]".format(min(speeds), max(speeds))
-            
+
         return s
-        
+
     def _repr_latex_(self):
         s = r"$" + self.latex_string() + r"$"
         return s
