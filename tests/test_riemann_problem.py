@@ -133,3 +133,15 @@ def test_multi_gamma():
     assert_allclose(rp.state_star_l.prim(), prim_star_l, rtol=1e-6)
     assert_allclose(rp.state_star_r.prim(), prim_star_r, rtol=1e-6)
     
+def test_detonation_wave():
+    """
+    A single detonation wave
+    """
+    eos = eos_defns.eos_gamma_law(5.0/3.0)
+    eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
+    U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
+    U_burnt = State(8.113665227084942, -0.34940431910454606, 0.0, 
+                    2.7730993786742353, eos)
+    rp = RiemannProblem(U_reactive, U_burnt)
+    assert(True) # TODO : fix this
+    

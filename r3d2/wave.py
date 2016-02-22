@@ -148,7 +148,10 @@ def precursor_root(p_0_star, q_known, t_i, wavenumber):
 #       calculate_burning_speed for WaveSection class, which are then
 #       called by its subclasses
 
-def post_discontinuity_state(p_star, q_start, lr_sign, label, j2, rho, eps, dp):
+def post_discontinuity_state(p_star, q_start, lr_sign, label, j2, rho, eps, dp,
+                             eos_end = None):
+    if eos_end is None:
+        eos_end = q_start.eos
     j = numpy.sqrt(j2)
     v_shock = (q_start.rho**2 * q_start.W_lorentz**2 * q_start.v + \
         lr_sign * j**2 * \
@@ -159,7 +162,7 @@ def post_discontinuity_state(p_star, q_start, lr_sign, label, j2, rho, eps, dp):
         (q_start.h * q_start.W_lorentz + dp * (1.0 / q_start.rho / q_start.W_lorentz + \
         lr_sign * q_start.v * W_lorentz_shock / j))
     vt = q_start.vt_from_known(rho, v, eps)
-    q_end = State(rho, v, vt, eps, q_start.eos, label=label)
+    q_end = State(rho, v, vt, eps, eos_end, label=label)
     return v_shock, q_end
     
 class WaveSection(object):
@@ -398,7 +401,8 @@ class Deflagration(WaveSection):
             j2, rho, eps, dp = mass_flux_squared(q_start, p_end, eos_end)
             v_deflagration, q_unknown = post_discontinuity_state(p_end, q_start,
                                                            lr_sign, label, j2,
-                                                           rho, eps, dp)
+                                                           rho, eps, dp,
+                                                           eos_end)
 
             # If the speed in the unknown state means the characteristics are
             # not going into the deflagration, then this is an unstable strong
@@ -410,7 +414,8 @@ class Deflagration(WaveSection):
                 j2, rho, eps, dp = mass_flux_squared(q_start, p_cjdf, eos_end)
                 v_deflagration, q_unknown = post_discontinuity_state(p_cjdf, q_start,
                                                                lr_sign, label, j2,
-                                                               rho, eps, dp)
+                                                               rho, eps, dp,
+                                                               eos_end)
                 self.name = r"{\cal CJDF}"
                 if self.wavenumber == 0:
                     label = r"\star_L"
@@ -476,7 +481,8 @@ class Detonation(WaveSection):
             else:
                 v_detonation, q_unknown = post_discontinuity_state(p_end, q_start,
                                                                lr_sign, label, j2,
-                                                               rho, eps, dp)
+                                                               rho, eps, dp,
+                                                               eos_end)
 
             # If the speed in the unknown state means the characteristics are
             # not going into the detonation, then this is an unstable weak
@@ -493,7 +499,8 @@ class Detonation(WaveSection):
                 j2, rho, eps, dp = mass_flux_squared(q_start, p_cjdt, eos_end)
                 v_detonation, q_unknown = post_discontinuity_state(p_cjdt, q_start,
                                                                lr_sign, label, j2,
-                                                               rho, eps, dp)
+                                                               rho, eps, dp,
+                                                               eos_end)
                 self.name = r"{\cal CJDT}"
                 if self.wavenumber == 0:
                     label = r"\star_L"
