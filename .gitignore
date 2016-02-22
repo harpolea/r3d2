@@ -1,2 +1,6 @@
 .ipynb_checkpoints
 __pycache__
+build
+dist
+r3d2.egg-info
+docs/_build

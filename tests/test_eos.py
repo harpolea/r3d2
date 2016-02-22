@@ -1,4 +1,4 @@
-import eos_defns
+from r3d2 import eos_defns
 import numpy
 from numpy.testing import assert_allclose
 
@@ -15,7 +15,8 @@ def test_eos_gamma_law():
     assert_allclose([p, h, cs], [p_true, h_true, cs_true], rtol=1e-8)
 
 def test_eos_gamma_law_react():
-    eos = eos_defns.eos_gamma_law_react(5.0/3.0, 0.5, 1.0)
+    eos_inert = eos_defns.eos_gamma_law(5.0/3.0)
+    eos = eos_defns.eos_gamma_law_react(5.0/3.0, 0.5, 1.0, 10.0, eos_inert)
     rho = 1.0
     eps = 1.0
     p_true = 1.0 / 3.0

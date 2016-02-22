@@ -2,14 +2,14 @@
 Equations of state.
 """
 
-import numpy as np
+import numpy
 
 def eos_gamma_law(gamma):
 
     p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * eps
     h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps
     cs_from_rho_eps = lambda rho, eps : \
-    np.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
+    numpy.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
     h_from_rho_p = lambda rho, p : 1.0 + gamma / (gamma - 1.0) * p / rho
 
     eos = {'p_from_rho_eps' : p_from_rho_eps,
@@ -19,12 +19,12 @@ def eos_gamma_law(gamma):
 
     return eos
 
-def eos_gamma_law_react(gamma, q, Cv):
+def eos_gamma_law_react(gamma, q, Cv, t_i, eos_inert):
 
     p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * (eps - q)
     h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps + (1.0 - gamma) * q
     cs_from_rho_eps = lambda rho, eps : \
-    np.sqrt(gamma * (gamma - 1.0) * (eps - q) / \
+    numpy.sqrt(gamma * (gamma - 1.0) * (eps - q) / \
     (1.0 + gamma * eps + (1.0 - gamma) * q))
     h_from_rho_p = lambda rho, p : 1.0 + gamma / (gamma - 1.0) * p / rho + q
     t_from_rho_eps = lambda rho, eps : (eps - q) / Cv
@@ -33,7 +33,10 @@ def eos_gamma_law_react(gamma, q, Cv):
            'h_from_rho_eps' : h_from_rho_eps,
            'cs_from_rho_eps' : cs_from_rho_eps,
            'h_from_rho_p' : h_from_rho_p,
-           't_from_rho_eps' : t_from_rho_eps}
+           't_from_rho_eps' : t_from_rho_eps,
+           'q_available' : q,
+           't_ignition' : t_i,
+           'eos_inert' : eos_inert}
 
     return eos
 
@@ -68,7 +71,7 @@ def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
         return 1. + eps_cold + eps + (p_cold + p_th)/ rho
 
     def cs_from_rho_eps(rho, eps):
-        return np.sqrt(gamma[0] * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
+        return numpy.sqrt(gamma[0] * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
 
     def h_from_rho_p(rho, p):
         if (rho < rho_transition):
