@@ -7,3 +7,5 @@ exclude_lines =
     def latex_string
     def _repr_png_
     def _repr_svg_
+    def _figure_data
+
