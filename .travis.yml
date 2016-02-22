@@ -6,10 +6,10 @@ python:
   - "3.5"
 # code coverage
 before_install:
+  - sudo apt-get update
   - pip install codecov
 # Setup anaconda
 install:
-  - sudo apt-get update
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
@@ -28,6 +28,6 @@ install:
   - source activate test-environment
 # Run test
 script:
-  nosetests --with-coverage
+  - nosetests --with-coverage
 after_success:
   - codecov
