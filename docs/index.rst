@@ -12,8 +12,10 @@ Contents:
    :maxdepth: 2
 
    eos_defns.rst
-   riemann_problems.rst
-   
+   states
+   waves
+   riemann_problem
+
 Indices and tables
 ==================
 

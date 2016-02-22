@@ -733,8 +733,9 @@ class Wave(object):
             xi_section, data_section = wavesection.plotting_data()
             xi_wave = numpy.hstack((xi_wave, xi_section))
             data_wave = numpy.vstack((data_wave, data_section))
-
+            
         if self.wavenumber == 2:
+            xi_wave = xi_wave[-1::-1]
             data_wave = data_wave[-1::-1,:]
 
         return xi_wave, data_wave

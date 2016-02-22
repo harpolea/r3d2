@@ -15,10 +15,17 @@ Functions needed
 2. ``h_from_rho_eps(rho, eps)``. :math:`h(\rho_0, \epsilon)`. Specific enthalpy given rest mass density and specific internal energy.
 3. ``cs_from_rho_eps(rho, eps)``. :math:`c_s (\rho_0, \epsilon)`. Speed of sound given rest mass density and specific internal energy.
 4. ``h_from_rho_p(rho, p)``. :math:`h(\rho_0, p)`. Specific enthalpy given rest mass density and pressure.
-5. ``t_from_rho_eps(rho, eps)``. :math:`T(\rho_0, \epsilon)`. Temperature given rest mass density and specific internal energy.
+
+Information needed for reactions
+================================
+
+1. ``q_available``. :math:`q`. Amount of energy available for a reaction.
+2. ``t_ignition``. :math:`t_i`. Temperature at which the reaction takes place.
+3. ``t_from_rho_eps(rho, eps)``. :math:`T(\rho_0, \epsilon)`. Temperature given rest mass density and specific internal energy.
+4. ``eos_inert``. The equation of state to use after the reaction has taken place.
 
 Provided EOS
 ============
 
 1. ``eos_gamma_law(gamma)``. Standard :math:`\gamma`-law EOS where :math:`e(V, T) = C_V T` and so :math:`p(\rho_0, \epsilon) = (\gamma - 1) \rho_0 \epsilon`.
-2. ``eos_gamma_law_react(gamma, q, Cv)``. Reactive EOS where :math:`e(V, T) = C_V T + q` and so :math:`p(\rho_0, \epsilon) = (\gamma - 1) \rho_0 (\epsilon - q)`, where :math:`q` is the chemical binding energy.
+2. ``eos_gamma_law_react(gamma, q, Cv, t_i, eos_inert)``. Reactive EOS where :math:`e(V, T) = C_V T + q` and so :math:`p(\rho_0, \epsilon) = (\gamma - 1) \rho_0 (\epsilon - q)`, where :math:`q` is the chemical binding energy.

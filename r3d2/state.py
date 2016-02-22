@@ -121,7 +121,8 @@ class State(object):
         else:
             s = r"\begin{pmatrix} \rho \\ v_x \\ v_t \\ \epsilon \end{pmatrix}"
         if self.label:
-            s += r"_{{{}}} = ".format(self.label)
+            s += r"_{{{}}} ".format(self.label)
+        s += "= "
         if self.q:
             s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(\
             self.rho, self.v, self.vt, self.eps, self.q)
