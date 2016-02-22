@@ -14,6 +14,7 @@ Contents:
    eos_defns.rst
    riemann_problems.rst
    states
+   waves
 
 Indices and tables
 ==================
