@@ -143,5 +143,6 @@ def test_detonation_wave():
     U_burnt = State(8.113665227084942, -0.34940431910454606, 0.0, 
                     2.7730993786742353, eos)
     rp = RiemannProblem(U_reactive, U_burnt)
-    assert(True) # TODO : fix this
+    assert(rp.waves[2].wave_sections[0].trivial)
+    assert_allclose(rp.waves[0].wavespeed, -0.82680400067536064)
     
