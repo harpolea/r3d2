@@ -4,11 +4,14 @@ wave pattern changes with tangential velocity.
 """
 from r3d2 import eos_defns, State, RiemannProblem
 
-def check_wave_pattern(U_reactive, U_burnt):
+def check_wave_pattern(U_reactive, U_burnt, vts=[-0.9,0.0,0.9]):
     """
+    Given an initial reactive state and burnt state, will run the
+    reactive Riemann problem with the reactive state having a range
+    of tangential velocities. Shall print output to screen where the
+    resulting wave patterns are different. 
     """
     wave_patterns = []
-    vts = [-0.9, 0.0, 0.9]
     for vt in vts:
     # first change the vt
         U_reactive.vt = vt
@@ -16,27 +19,29 @@ def check_wave_pattern(U_reactive, U_burnt):
         wave_patterns.append(rp.waves)
 
     # now check if all the wave patterns are the same
-    p1, p2, p3 = wave_patterns
 
-    for i in range(len(p1)):
-        w1 = p1[i].wave_sections
-        w2 = p2[i].wave_sections
-        w3 = p3[i].wave_sections
-        if len(w1) != len(w2):
-            print('vt = {}, {} are different'.format(vts[0], vts[1]))
-        elif len(w1) != len(w3):
-            print('vt = {}, {} are different'.format(vts[0], vts[2]))
-        elif len(w3) != len(w2):
-            print('vt = {}, {} are different'.format(vts[1], vts[2]))
-        else:
-            for i in range(len(w1)):
-                if not w1[i].type == w2[i].type:
-                    print('vt = {}, {} are different'.format(vts[0], vts[1]))
-                if not w1[i].type == w3[i].type:
-                    print('vt = {}, {} are different'.format(vts[0], vts[2]))
-                if not w2[i].type == w3[i].type:
-                    print('vt = {}, {} are different'.format(vts[1], vts[2]))
+    # flatten patterns
+    flat_patterns = []
+    for i, p in enumerate(wave_patterns):
+        flat_patterns.append([])
+        for w in p:
+            for s in w.wave_sections:
+                flat_patterns[i].append(repr(s))
 
+    if not flat_patterns[0] == flat_patterns[1]:
+        print('vt = {}, {} are different'.format(vts[0], vts[1]))
+        print(' '.join(flat_patterns[0]))
+        print(' '.join(flat_patterns[1]))
+
+    if not flat_patterns[0] == flat_patterns[2]:
+        print('vt = {}, {} are different'.format(vts[0], vts[2]))
+        print(' '.join(flat_patterns[0]))
+        print(' '.join(flat_patterns[2]))
+
+    if not flat_patterns[1] == flat_patterns[2]:
+        print('vt = {}, {} are different'.format(vts[1], vts[2]))
+        print(' '.join(flat_patterns[1]))
+        print(' '.join(flat_patterns[2]))
 
 if __name__ == "__main__":
     eos = eos_defns.eos_gamma_law(5.0/3.0)

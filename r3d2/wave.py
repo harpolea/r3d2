@@ -181,6 +181,7 @@ class WaveSection(object):
         self.q_start = None
         self.q_end = None
         self.wavespeed = []
+        self.type = ""
 
     def latex_string(self):
         if self.trivial:
@@ -198,6 +199,9 @@ class WaveSection(object):
     def _repr_latex_(self):
         s = r"$" + self.latex_string() + r"$"
         return s
+
+    def __repr__(self):
+        return self.type
 
     def plotting_data(self):
 
