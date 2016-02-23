@@ -84,7 +84,7 @@ def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
                 k[0] * rho_transition**(gamma[0] - 1.0)
 
         p_th = max(0.0, p - p_cold)
-        eps= 0.0 * p_th #FIXME
+        eps = 0.0 * p_th #FIXME
 
         return 1.0 + eps_cold + eps + p / rho
 
