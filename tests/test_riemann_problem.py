@@ -160,3 +160,14 @@ def test_deflagration_wave():
     wavespeed_deflagration = [-0.60970641412658788, 0.94395720523915128]
     assert_allclose(rp.waves[0].wavespeed, wavespeed_deflagration)
     
+def test_trivial():
+    """
+    A trivial Riemann Problem
+    """
+    eos = eos_defns.eos_gamma_law(5.0/3.0)
+    U = State(1.0, 0.0, 0.0, 1.0, eos)
+    rp = RiemannProblem(U, U)
+    for wave in rp.waves:
+        assert(wave.wave_sections[0].trivial)
+        assert(wave.name == "")
+
