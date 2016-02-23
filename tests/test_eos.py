@@ -42,7 +42,7 @@ def test_eos_polytrope_law():
     assert_allclose([p, h, cs], [p_true, h_true, cs_true], rtol=1.e-8)
     h_from_rho_p = eos['h_from_rho_p'](rho, p)
     # TODO: fix this
-    #assert_allclose(h, h_from_rho_p, rtol=1.e-8)
+    assert_allclose(h, h_from_rho_p, rtol=1.e-8)
 
 def test_eos_polytrope_law_cold():
     """

@@ -73,6 +73,7 @@ def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
     def cs_from_rho_eps(rho, eps):
         return numpy.sqrt(gamma[0] * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
 
+    # TODO: fix
     def h_from_rho_p(rho, p):
         if (rho < rho_transition):
             p_cold = k[0] * rho**gamma[0]
@@ -84,7 +85,7 @@ def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
                 k[0] * rho_transition**(gamma[0] - 1.0)
 
         p_th = max(0.0, p - p_cold)
-        eps = 0.0 * p_th #FIXME
+        eps = p_th / (gamma_th - 1.0) / rho + eps_cold
 
         return 1.0 + eps_cold + eps + p / rho
 
