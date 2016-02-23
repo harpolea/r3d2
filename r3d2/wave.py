@@ -164,7 +164,7 @@ def post_discontinuity_state(p_star, q_start, lr_sign, label, j2, rho, eps, dp,
     vt = q_start.vt_from_known(rho, v, eps)
     q_end = State(rho, v, vt, eps, eos_end, label=label)
     return v_shock, q_end
-    
+
 class WaveSection(object):
 
     def __init__(self, q_start, p_end, wavenumber):
@@ -232,7 +232,7 @@ class Contact(WaveSection):
         if numpy.allclose(q_start.state(), q_end.state()):
             self.trivial = True
             self.name = ""
-            
+
         assert(numpy.allclose(q_start.v, q_end.v)), "Velocities of states "\
         "must match for a contact"
         assert(numpy.allclose(q_start.p, q_end.p)), "Pressures of states "\
@@ -658,7 +658,7 @@ class Wave(object):
             xi_section, data_section = wavesection.plotting_data()
             xi_wave = numpy.hstack((xi_wave, xi_section))
             data_wave = numpy.vstack((data_wave, data_section))
-            
+
         if self.wavenumber == 2:
             xi_wave = xi_wave[-1::-1]
             data_wave = data_wave[-1::-1,:]
