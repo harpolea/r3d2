@@ -146,6 +146,22 @@ def test_detonation_wave():
     assert(rp.waves[2].wave_sections[0].trivial)
     assert_allclose(rp.waves[0].wavespeed, -0.82680400067536064)
     
+def test_cj_detonation_wave():
+    """
+    A single CJ detonation wave
+    """
+    eos = eos_defns.eos_gamma_law(5.0/3.0)
+    eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
+    U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
+    U_burnt = State(5.1558523350586452, -0.031145176327346744, 0.0, 
+                    2.0365206985013153, eos)
+    rp = RiemannProblem(U_reactive, U_burnt)
+    assert(rp.waves[0].wave_sections[0].name == r"{\cal CJDT}_{\leftarrow}")
+    assert(rp.waves[0].wave_sections[1].name == r"{\cal R}_{\leftarrow}")
+    assert(rp.waves[2].wave_sections[0].trivial)
+    wavespeed_cj_detonation = [-0.79738216287617047, -0.73237792243759536]
+    assert_allclose(rp.waves[0].wavespeed, wavespeed_cj_detonation)
+    
 def test_deflagration_wave():
     """
     A single deflagration wave

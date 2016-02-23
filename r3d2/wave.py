@@ -493,11 +493,12 @@ class Detonation(WaveSection):
             # detonation
             if (lr_sign*(q_unknown.wavespeed(self.wavenumber) - v_detonation) < 0):
                 pmin = (1.0+1e-9)*min(q_start.p, p_end)
-                pmax = (1.0-1e-9)*max(q_start.p, p_end)
-                p_guess = numpy.linspace(pmin, pmax)
-                root_guess = numpy.zeros_like(p_guess)
-                for i, p in enumerate(p_guess):
-                    root_guess[i] = deflagration_root(p, q_start, eos_end, self.wavenumber, t_i)
+                pmax = max(q_start.p, p_end)
+                fmin = deflagration_root(pmin, q_start, eos_end, self.wavenumber, t_i)
+                fmax = deflagration_root(pmax, q_start, eos_end, self.wavenumber, t_i)
+                while fmin * fmax > 0:
+                    pmax *= 2.0
+                    fmax = deflagration_root(pmax, q_start, eos_end, self.wavenumber, t_i)
                 p_cjdt = brentq(deflagration_root, pmin, pmax,
                                 args=(q_start, eos_end, self.wavenumber, t_i))
                 j2, rho, eps, dp = mass_flux_squared(q_start, p_cjdt, eos_end)
