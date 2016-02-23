@@ -3,13 +3,14 @@ Set up range of initial data for the reactive Riemann problem and see if the
 wave pattern changes with tangential velocity.
 """
 from r3d2 import eos_defns, State, RiemannProblem
+from itertools import combinations
 
 def check_wave_pattern(U_reactive, U_burnt, vts=[-0.9,0.0,0.9]):
     """
     Given an initial reactive state and burnt state, will run the
     reactive Riemann problem with the reactive state having a range
     of tangential velocities. Shall print output to screen where the
-    resulting wave patterns are different. 
+    resulting wave patterns are different.
     """
     wave_patterns = []
     for vt in vts:
@@ -28,20 +29,16 @@ def check_wave_pattern(U_reactive, U_burnt, vts=[-0.9,0.0,0.9]):
             for s in w.wave_sections:
                 flat_patterns[i].append(repr(s))
 
-    if not flat_patterns[0] == flat_patterns[1]:
-        print('vt = {}, {} are different'.format(vts[0], vts[1]))
-        print(' '.join(flat_patterns[0]))
-        print(' '.join(flat_patterns[1]))
+    # generate list of pairs
+    pairs = list(combinations(range(len(vts)), 2))
 
-    if not flat_patterns[0] == flat_patterns[2]:
-        print('vt = {}, {} are different'.format(vts[0], vts[2]))
-        print(' '.join(flat_patterns[0]))
-        print(' '.join(flat_patterns[2]))
+    # check to see if patterns match
+    for i, j in pairs:
+        if not flat_patterns[i] == flat_patterns[j]:
+            print('vt = {}, {} are different'.format(vts[i], vts[j]))
+            print(' '.join(flat_patterns[i]))
+            print(' '.join(flat_patterns[j]))
 
-    if not flat_patterns[1] == flat_patterns[2]:
-        print('vt = {}, {} are different'.format(vts[1], vts[2]))
-        print(' '.join(flat_patterns[1]))
-        print(' '.join(flat_patterns[2]))
 
 if __name__ == "__main__":
     eos = eos_defns.eos_gamma_law(5.0/3.0)
