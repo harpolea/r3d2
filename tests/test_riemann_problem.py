@@ -146,3 +146,17 @@ def test_detonation_wave():
     assert(rp.waves[2].wave_sections[0].trivial)
     assert_allclose(rp.waves[0].wavespeed, -0.82680400067536064)
     
+def test_deflagration_wave():
+    """
+    A single deflagration wave
+    """
+    eos = eos_defns.eos_gamma_law(5.0/3.0)
+    eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
+    U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
+    U_burnt = State(0.10089486779791534, 0.97346270073482888, 0.0, 
+                    0.14866950243842186, eos)
+    rp = RiemannProblem(U_reactive, U_burnt)
+    assert(rp.waves[2].wave_sections[0].trivial)
+    wavespeed_deflagration = [-0.60970641412658788, 0.94395720523915128]
+    assert_allclose(rp.waves[0].wavespeed, wavespeed_deflagration)
+    

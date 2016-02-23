@@ -36,7 +36,6 @@ class RiemannProblem(object):
 
         def find_delta_v(p_star_guess):
 
-#            print("Solving RP, p_star_guess {}".format(p_star_guess))
             wave_l = Wave(self.state_l, p_star_guess, 0)
             wave_r = Wave(self.state_r, p_star_guess, 2)
 
@@ -48,7 +47,18 @@ class RiemannProblem(object):
             pmin /= 2.0
             pmax *= 2.0
 
-        self.p_star = brentq(find_delta_v, 0.9*pmin, 1.1*pmax)
+        pmin_rootfind = 0.9*pmin
+        pmax_rootfind = 1.1*pmax
+        try:
+            find_delta_v(pmin_rootfind)
+        except ValueError:
+            pmin_rootfind = pmin
+        try:
+            find_delta_v(pmax_rootfind)
+        except ValueError:
+            pmax_rootfind = pmax
+        
+        self.p_star = brentq(find_delta_v, pmin_rootfind, pmax_rootfind)
         wave_l = Wave(self.state_l, self.p_star, 0)
         wave_r = Wave(self.state_r, self.p_star, 2)
         self.state_star_l = wave_l.q_r
