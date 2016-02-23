@@ -229,6 +229,10 @@ class Contact(WaveSection):
 
         self.wavespeed = [q_start.v]
 
+        if numpy.allclose(q_start.state(), q_end.state()):
+            self.trivial = True
+            self.name = ""
+            
         assert(numpy.allclose(q_start.v, q_end.v)), "Velocities of states "\
         "must match for a contact"
         assert(numpy.allclose(q_start.p, q_end.p)), "Pressures of states "\
