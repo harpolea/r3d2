@@ -160,6 +160,23 @@ def test_deflagration_wave():
     wavespeed_deflagration = [-0.60970641412658788, 0.94395720523915128]
     assert_allclose(rp.waves[0].wavespeed, wavespeed_deflagration)
     
+def test_precursor_deflagration_wave():
+    """
+    A single deflagration wave with precursor shock
+    """
+    eos = eos_defns.eos_gamma_law(5.0/3.0)
+    eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
+    U_reactive = State(0.5, 0.0, 0.0, 1.0, eos_reactive)
+    U_burnt = State(0.24316548798524526, 0.39922932397353039, 0.0, 
+                    0.61686385086179807, eos)
+    rp = RiemannProblem(U_reactive, U_burnt)
+    assert(rp.waves[0].wave_sections[0].name == r"{\cal S}_{\leftarrow}")
+    assert(rp.waves[0].wave_sections[1].name == r"{\cal CJDF}_{\leftarrow}")
+    assert(rp.waves[0].wave_sections[2].name == r"{\cal R}_{\leftarrow}")
+    assert(rp.waves[2].wave_sections[0].trivial)
+    wavespeed_deflagration = [-0.65807776007359042, -0.23714630045322399]
+    assert_allclose(rp.waves[0].wavespeed, wavespeed_deflagration)
+    
 def test_trivial():
     """
     A trivial Riemann Problem
