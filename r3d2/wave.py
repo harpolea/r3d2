@@ -433,6 +433,13 @@ class Deflagration(WaveSection):
 
         self.wavespeed = [v_deflagration]
 
+    def plotting_data(self):
+
+        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
+        xi = numpy.array([self.wavespeed[0], self.wavespeed[0]])
+
+        return xi, data
+
 class Detonation(WaveSection):
 
     def __init__(self, q_start, p_end, wavenumber):
@@ -517,6 +524,13 @@ class Detonation(WaveSection):
             self.q_end = deepcopy(q_unknown)
 
         self.wavespeed = numpy.array([v_detonation])
+
+    def plotting_data(self):
+
+        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
+        xi = numpy.array([self.wavespeed[0], self.wavespeed[0]])
+
+        return xi, data
 
 def build_inert_wave_section(q_known, unknown_value, wavenumber):
     """
