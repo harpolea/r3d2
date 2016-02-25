@@ -205,9 +205,12 @@ class WaveSection(object):
 
     def plotting_data(self):
 
-        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
-        xi = numpy.array([self.q_start.wavespeed(self.wavenumber),
-                       self.q_start.wavespeed(self.wavenumber)])
+        if self.trivial:
+            data = numpy.zeros((0,8))
+            xi = numpy.zeros((0,))
+        else:
+            data = numpy.vstack((self.q_start.state(), self.q_end.state()))
+            xi = numpy.array([self.wavespeed[0], self.wavespeed[0]])
 
         return xi, data
 
@@ -355,13 +358,6 @@ class Shock(WaveSection):
 
         self.wavespeed = [v_shock]
 
-    def plotting_data(self):
-
-        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
-        xi = numpy.array([self.wavespeed[0], self.wavespeed[0]])
-
-        return xi, data
-
 # TODO: Check that q is correctly initialized across each wave in det, defl.
 class Deflagration(WaveSection):
 
@@ -436,13 +432,6 @@ class Deflagration(WaveSection):
 
 
         self.wavespeed = [v_deflagration]
-
-    def plotting_data(self):
-
-        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
-        xi = numpy.array([self.wavespeed[0], self.wavespeed[0]])
-
-        return xi, data
 
 class Detonation(WaveSection):
 
@@ -528,13 +517,6 @@ class Detonation(WaveSection):
             self.q_end = deepcopy(q_unknown)
 
         self.wavespeed = numpy.array([v_detonation])
-
-    def plotting_data(self):
-
-        data = numpy.vstack((self.q_start.state(), self.q_end.state()))
-        xi = numpy.array([self.wavespeed[0], self.wavespeed[0]])
-
-        return xi, data
 
 def build_inert_wave_section(q_known, unknown_value, wavenumber):
     """
@@ -667,6 +649,14 @@ class Wave(object):
         self.wavespeed.append(minspeed)
         if not numpy.allclose(minspeed, maxspeed):
             self.wavespeed.append(maxspeed)
+        
+        self.trivial = True
+        if self.wave_sections:
+            for wavesection in self.wave_sections:
+                if not wavesection.trivial:
+                    self.trivial = False
+        if self.trivial:
+            self.wavespeed = []
 
     def plotting_data(self):
 

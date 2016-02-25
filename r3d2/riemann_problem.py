@@ -78,7 +78,8 @@ class RiemannProblem(object):
                                 [0, 1, 1, 0], color='k', alpha=0.1)
                 for xi in xi_end:
                     ax.plot([0, xi], [0, 1], 'k-', linewidth=1)
-        ax.plot([0, self.waves[1].wavespeed[0]], [0, 1], 'k--', linewidth=1)
+        if len(self.waves[1].wavespeed):
+            ax.plot([0, self.waves[1].wavespeed[0]], [0, 1], 'k--', linewidth=1)
         ax.set_xlim(-1, 1)
         ax.set_ylim(0, 1)
         ax.set_xlabel(r"$x$")
