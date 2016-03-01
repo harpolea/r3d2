@@ -129,11 +129,12 @@ def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
 
     return q_unknown.wavespeed(wavenumber) - v_deflagration
 
-def precursor_root(p_0_star, q_known, t_i, wavenumber):
+def precursor_root(p_0_star, q_known, wavenumber):
     shock = Shock(q_known, p_0_star, wavenumber)
     q_precursor = shock.q_end
     t_precursor = q_precursor.eos['t_from_rho_eps'](
                     q_precursor.rho, q_precursor.eps)
+    t_i = q_precursor.eos['t_ignition'](q_precursor.rho, q_precursor.eps)
     return t_precursor - t_i
 
 # NOTE: all subclasses begin with initialising type, name, wavenumber etc.
@@ -367,7 +368,7 @@ class Deflagration(WaveSection):
         """
 
         eos_end = q_start.eos['eos_inert']
-        t_i = q_start.eos['t_ignition']
+        t_i = q_start.eos['t_ignition'](q_start.rho, q_start.eps)
 
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Deflagration "\
@@ -414,7 +415,7 @@ class Deflagration(WaveSection):
             if (lr_sign*(q_unknown.wavespeed(self.wavenumber) - v_deflagration) < 0):
                 p_cjdf = brentq(deflagration_root, (1.0+1e-9)*p_end,
                                 (1.0-1e-9)*q_start.p,
-                                args=(q_start, eos_end, self.wavenumber, t_i))
+                                args=(q_start, eos_end, self.wavenumber, label))
                 j2, rho, eps, dp = mass_flux_squared(q_start, p_cjdf, eos_end)
                 v_deflagration, q_unknown = post_discontinuity_state(p_cjdf, q_start,
                                                                lr_sign, label, j2,
@@ -441,7 +442,7 @@ class Detonation(WaveSection):
         """
 
         eos_end = q_start.eos['eos_inert']
-        t_i = q_start.eos['t_ignition']
+        t_i = q_start.eos['t_ignition'](q_start.rho, q_start.eps)
 
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Detonation "\
@@ -494,13 +495,13 @@ class Detonation(WaveSection):
             if (lr_sign*(q_unknown.wavespeed(self.wavenumber) - v_detonation) < 0):
                 pmin = (1.0+1e-9)*min(q_start.p, p_end)
                 pmax = max(q_start.p, p_end)
-                fmin = deflagration_root(pmin, q_start, eos_end, self.wavenumber, t_i)
-                fmax = deflagration_root(pmax, q_start, eos_end, self.wavenumber, t_i)
+                fmin = deflagration_root(pmin, q_start, eos_end, self.wavenumber, label)
+                fmax = deflagration_root(pmax, q_start, eos_end, self.wavenumber, label)
                 while fmin * fmax > 0:
                     pmax *= 2.0
-                    fmax = deflagration_root(pmax, q_start, eos_end, self.wavenumber, t_i)
+                    fmax = deflagration_root(pmax, q_start, eos_end, self.wavenumber, label)
                 p_cjdt = brentq(deflagration_root, pmin, pmax,
-                                args=(q_start, eos_end, self.wavenumber, t_i))
+                                args=(q_start, eos_end, self.wavenumber, label))
                 j2, rho, eps, dp = mass_flux_squared(q_start, p_cjdt, eos_end)
                 v_detonation, q_unknown = post_discontinuity_state(p_cjdt, q_start,
                                                                lr_sign, label, j2,
@@ -535,7 +536,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
     Object factory for the WaveSection; reactive case
     """
 
-    t_i = q_known.eos['t_ignition']
+    t_i = q_known.eos['t_ignition'](q_known.rho, q_known.eps)
 
     if wavenumber == 1:
         return Contact(q_known, unknown_value, wavenumber)
@@ -552,19 +553,21 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
                 wavesections.append(rarefaction)
         else:
             t_known = q_known.eos['t_from_rho_eps'](q_known.rho, q_known.eps)
+            t_i = q_known.eos['t_ignition'](q_known.rho, q_known.eps)
+            print('t_i : {}'.format(t_i))
             if t_known < t_i: # Need a precursor shock
                 p_min = unknown_value
                 p_max = q_known.p
-                t_min = precursor_root(p_min, q_known, t_i, wavenumber)
-                t_max = precursor_root(p_max, q_known, t_i, wavenumber)
+                t_min = precursor_root(p_min, q_known, wavenumber)
+                t_max = precursor_root(p_max, q_known, wavenumber)
                 assert(t_min < 0)
 
                 if t_max <= 0:
                     p_max *= 2
-                    t_max = precursor_root(p_max, q_known, t_i, wavenumber)
+                    t_max = precursor_root(p_max, q_known, wavenumber)
 
                 p_0_star = brentq(precursor_root, p_min, p_max,
-                                  args=(q_known, t_i, wavenumber))
+                                  args=(q_known, wavenumber))
                 precursor_shock = Shock(q_known, p_0_star, wavenumber)
                 wavesections.append(precursor_shock)
                 q_next = precursor_shock.q_end
@@ -598,12 +601,10 @@ class Wave(object):
             state on the other side.
         q_known : State
             The known state on one side of the wave
-        p_star : scalar
+        unknown_value : scalar
             Pressure in the region of unknown state
-        unknown_eos : dictionary
-            Equation of state in the unknown region
-        t_i : scalar
-            temperature at which the state starts to react
+        wavenumber : scalar
+            characterises direction of travel of wave
         """
 
         # NOTE: it's not so clear what wavenumber is - change to something like a wavedirection variable which can be left/right/static?
@@ -649,7 +650,7 @@ class Wave(object):
         self.wavespeed.append(minspeed)
         if not numpy.allclose(minspeed, maxspeed):
             self.wavespeed.append(maxspeed)
-        
+
         self.trivial = True
         if self.wave_sections:
             for wavesection in self.wave_sections:

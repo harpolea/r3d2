@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 def test_standard_sod():
     """
     Relativistic Sod test.
-    
+
     Numbers are taken from the General Matlab code, so accuracy isn't perfect.
     """
     eos = eos_defns.eos_gamma_law(5.0/3.0)
@@ -21,10 +21,10 @@ def test_standard_sod():
 def test_bench_1():
     """
     Test Bench problem 1.
-    
+
     Take from Marti & Muller's Living Review (section 6.3). See
     http://computastrophys.livingreviews.org/Articles/lrca-2015-3
-    
+
     Uses Matlab code to test, so extreme accuracy given.
     """
     eos = eos_defns.eos_gamma_law(5.0/3.0)
@@ -43,14 +43,14 @@ def test_bench_1():
     assert_allclose(rp.p_star, p_star_ref, rtol=1e-8)
     assert_allclose(rp.state_star_l.prim(), prim_star_l, rtol=1e-8)
     assert_allclose(rp.state_star_r.prim(), prim_star_r, rtol=1e-8)
-    
+
 def test_bench_2():
     """
     Test Bench problem 2.
-    
+
     Take from Marti & Muller's Living Review (section 6.3). See
     http://computastrophys.livingreviews.org/Articles/lrca-2015-3
-    
+
     Uses Matlab code to test, so extreme accuracy given.
     """
     eos = eos_defns.eos_gamma_law(5.0/3.0)
@@ -69,15 +69,15 @@ def test_bench_2():
     assert_allclose(rp.p_star, p_star_ref, rtol=1e-8)
     assert_allclose(rp.state_star_l.prim(), prim_star_l, rtol=1e-8)
     assert_allclose(rp.state_star_r.prim(), prim_star_r, rtol=1e-8)
-    
+
 
 def test_bench_3():
     """
     Test Bench problem 3.
-    
+
     Take from Marti & Muller's Living Review (section 6.3). See
     http://computastrophys.livingreviews.org/Articles/lrca-2015-3
-    
+
     """
     eos = eos_defns.eos_gamma_law(5.0/3.0)
     w_left = State(1.0, 0.0, 0.0, 1500, eos, label="L")
@@ -87,14 +87,14 @@ def test_bench_3():
     v_contact_ref = 0.766706
     assert_allclose(rp.waves[2].wavespeed, v_shock_ref, rtol=1e-5)
     assert_allclose(rp.waves[1].wavespeed, v_contact_ref, rtol=1e-5)
-    
+
 def test_bench_4():
     """
     Test Bench problem 4.
-    
+
     Take from Marti & Muller's Living Review (section 6.3). See
     http://computastrophys.livingreviews.org/Articles/lrca-2015-3
-    
+
     Left and right states have been flipped so it complements the above
     Sod test.
     """
@@ -112,7 +112,7 @@ def test_bench_4():
 def test_multi_gamma():
     """
     Test using different equations of state either side of the interface.
-    
+
     This is essentially the strong test (Figure 3) of Millmore and Hawke
     """
     eos1 = eos_defns.eos_gamma_law(1.4)
@@ -132,7 +132,7 @@ def test_multi_gamma():
     assert_allclose(rp.p_star, p_star_ref, rtol=1e-6)
     assert_allclose(rp.state_star_l.prim(), prim_star_l, rtol=1e-6)
     assert_allclose(rp.state_star_r.prim(), prim_star_r, rtol=1e-6)
-    
+
 def test_detonation_wave():
     """
     A single detonation wave
@@ -140,12 +140,12 @@ def test_detonation_wave():
     eos = eos_defns.eos_gamma_law(5.0/3.0)
     eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
     U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
-    U_burnt = State(8.113665227084942, -0.34940431910454606, 0.0, 
+    U_burnt = State(8.113665227084942, -0.34940431910454606, 0.0,
                     2.7730993786742353, eos)
     rp = RiemannProblem(U_reactive, U_burnt)
     assert(rp.waves[2].wave_sections[0].trivial)
     assert_allclose(rp.waves[0].wavespeed, -0.82680400067536064)
-    
+
 def test_cj_detonation_wave():
     """
     A single CJ detonation wave
@@ -153,7 +153,7 @@ def test_cj_detonation_wave():
     eos = eos_defns.eos_gamma_law(5.0/3.0)
     eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
     U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
-    U_burnt = State(5.1558523350586452, -0.031145176327346744, 0.0, 
+    U_burnt = State(5.1558523350586452, -0.031145176327346744, 0.0,
                     2.0365206985013153, eos)
     rp = RiemannProblem(U_reactive, U_burnt)
     assert(rp.waves[0].wave_sections[0].name == r"{\cal CJDT}_{\leftarrow}")
@@ -161,7 +161,7 @@ def test_cj_detonation_wave():
     assert(rp.waves[2].wave_sections[0].trivial)
     wavespeed_cj_detonation = [-0.79738216287617047, -0.73237792243759536]
     assert_allclose(rp.waves[0].wavespeed, wavespeed_cj_detonation)
-    
+
 def test_deflagration_wave():
     """
     A single deflagration wave
@@ -169,13 +169,13 @@ def test_deflagration_wave():
     eos = eos_defns.eos_gamma_law(5.0/3.0)
     eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
     U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
-    U_burnt = State(0.10089486779791534, 0.97346270073482888, 0.0, 
+    U_burnt = State(0.10089486779791534, 0.97346270073482888, 0.0,
                     0.14866950243842186, eos)
     rp = RiemannProblem(U_reactive, U_burnt)
     assert(rp.waves[2].wave_sections[0].trivial)
     wavespeed_deflagration = [-0.60970641412658788, 0.94395720523915128]
     assert_allclose(rp.waves[0].wavespeed, wavespeed_deflagration)
-    
+
 def test_precursor_deflagration_wave():
     """
     A single deflagration wave with precursor shock
@@ -183,7 +183,7 @@ def test_precursor_deflagration_wave():
     eos = eos_defns.eos_gamma_law(5.0/3.0)
     eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
     U_reactive = State(0.5, 0.0, 0.0, 1.0, eos_reactive)
-    U_burnt = State(0.24316548798524526, 0.39922932397353039, 0.0, 
+    U_burnt = State(0.24316548798524526, 0.39922932397353039, 0.0,
                     0.61686385086179807, eos)
     rp = RiemannProblem(U_reactive, U_burnt)
     assert(rp.waves[0].wave_sections[0].name == r"{\cal S}_{\leftarrow}")
@@ -192,7 +192,7 @@ def test_precursor_deflagration_wave():
     assert(rp.waves[2].wave_sections[0].trivial)
     wavespeed_deflagration = [-0.65807776007359042, -0.23714630045322399]
     assert_allclose(rp.waves[0].wavespeed, wavespeed_deflagration)
-    
+
 def test_trivial():
     """
     A trivial Riemann Problem
@@ -203,4 +203,3 @@ def test_trivial():
     for wave in rp.waves:
         assert(wave.wave_sections[0].trivial)
         assert(wave.name == "")
-

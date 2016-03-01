@@ -29,13 +29,20 @@ def eos_gamma_law_react(gamma, q, Cv, t_i, eos_inert):
     h_from_rho_p = lambda rho, p : 1.0 + gamma / (gamma - 1.0) * p / rho + q
     t_from_rho_eps = lambda rho, eps : (eps - q) / Cv
 
+    # done for backwards compatibility
+    def t_i_from_rho_eps(rho, eps):
+        if t_i is None:
+            return 2.5 * rho**(2./3.) / (eps-q)**(1./3.)
+        else:
+            return t_i
+
     eos = {'p_from_rho_eps' : p_from_rho_eps,
            'h_from_rho_eps' : h_from_rho_eps,
            'cs_from_rho_eps' : cs_from_rho_eps,
            'h_from_rho_p' : h_from_rho_p,
            't_from_rho_eps' : t_from_rho_eps,
            'q_available' : q,
-           't_ignition' : t_i,
+           't_ignition' : t_i_from_rho_eps,
            'eos_inert' : eos_inert}
 
     return eos

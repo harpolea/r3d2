@@ -60,7 +60,7 @@ def find_critical_vt(U_reactive, U_burnt):
     the initial pass, then a root may be missed if the wave pattern changes
     to a different pattern then back again.
     """
-    vts = np.linspace(0., 0.9, num=100)
+    vts = np.linspace(0., 0.8, num=100)
     tolerance = 1.e-4
 
     def bisect(vt0, vtend, tol=tolerance):
@@ -100,14 +100,17 @@ def find_critical_vt(U_reactive, U_burnt):
             critical_vts.append(vt)
             critical_patterns.append(pattern)
 
-    print('There are {} critical tangential velocities: '.format(len(critical_vts)))
+    if len(critical_vts) == 1:
+        print('There is one critical tangential velocity ')
+    else:
+        print('There are {} critical tangential velocities '.format(len(critical_vts)))
     for i, v in enumerate(critical_vts):
         print('vt: {}, patterns: {} -> {}'.format(v, ', '.join(critical_patterns[i][0]), ', '.join(critical_patterns[i][1])))
 
 if __name__ == "__main__":
     eos = eos_defns.eos_gamma_law(5.0/3.0)
     eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
-    U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
+    #U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
     # detonation wave
     #U_burnt = State(8.113665227084942, -0.34940431910454606, 0.0,
     #                2.7730993786742353, eos)
@@ -118,8 +121,11 @@ if __name__ == "__main__":
     #U_burnt = State(0.10089486779791534, 0.97346270073482888, 0.0,
     #                0.14866950243842186, eos)
     # deflagration with precursor shock
-    U_burnt = State(0.24316548798524526, 0.39922932397353039, 0.0,
-                    0.61686385086179807, eos)
+    #U_burnt = State(0.24316548798524526, 0.39922932397353039, 0.0,
+    #                0.61686385086179807, eos)
+
+    U_reactive = State(1.0, -0.5, 0.0, 1.5, eos_reactive)
+    U_burnt = State(0.125, 0.0, 0., 1.2, eos)
 
     #check_wave_pattern(U_reactive, U_burnt, vts=[-0.5,-0.1, 0.0, 0.1, 0.5])
     find_critical_vt(U_reactive, U_burnt)
