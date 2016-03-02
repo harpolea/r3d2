@@ -554,7 +554,6 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
         else:
             t_known = q_known.eos['t_from_rho_eps'](q_known.rho, q_known.eps)
             t_i = q_known.eos['t_ignition'](q_known.rho, q_known.eps)
-            print('t_i : {}'.format(t_i))
             if t_known < t_i: # Need a precursor shock
                 p_min = unknown_value
                 p_max = q_known.p
