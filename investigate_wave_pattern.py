@@ -6,14 +6,14 @@ from r3d2 import eos_defns, State, RiemannProblem
 from itertools import combinations
 import numpy as np
 
-def check_wave_pattern(U_l, U_r, vts=[-0.9,0.0,0.9]):
+def check_wave_pattern(U_l, U_r, vt_side, vts=[-0.9,0.5,0.0,-0.5,0.9]):
     """
     Given an initial reactive state and burnt state, will run the
     reactive Riemann problem with the reactive state having a (given) range
     of tangential velocities. Shall print output to screen where the
     resulting wave patterns are different.
     """
-    flat_patterns = make_flat_patterns(U_l, U_r, vts)
+    flat_patterns = make_flat_patterns(U_l, U_r, vts, vt_side)
 
     # generate list of pairs
     pairs = list(combinations(range(len(vts)), 2))
@@ -26,20 +26,33 @@ def check_wave_pattern(U_l, U_r, vts=[-0.9,0.0,0.9]):
             print(', '.join(flat_patterns[j]))
 
 
-def make_flat_patterns(U_l, U_r, vts):
+def make_flat_patterns(U_l, U_r, vts, vt_side):
     """
     Save some code repetition. Given reactive and burnt states, produces a list of lists of wave patterns for a given list of tangential velocities.
     """
+    eos_l = eos_defns.eos_gamma_law(5.0/3.0)
+    eos_r = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos_l)
+
     wave_patterns = []
-    rho_r = U_r.rho
-    v_r = U_r.v
-    eps_r = U_r.eps
-    eos_r = U_r.eos
+    if vt_side == 'l':
+        rho_l = U_l.rho
+        v_l = U_l.v
+        eps_l = U_l.eps
+        eos_l = U_l.eos
+    else:
+        rho_r = U_r.rho
+        v_r = U_r.v
+        eps_r = U_r.eps
+        eos_r = U_r.eos
 
     for vt in vts:
-    # first change the vt
-        U_r_new = State(rho_r, v_r, vt, eps_r, eos_r)
-        rp = RiemannProblem(U_l, U_r_new)
+        # first change the vt
+        if vt_side == 'l':
+            U_l = State(rho_l, v_l, vt, eps_l, eos_l)
+            U_r = State(rho_r, v_r, 0.0, eps_r, eos_r)
+        else:
+            U_r = State(rho_r, v_r, vt, eps_r, eos_r)
+        rp = RiemannProblem(U_l, U_r)
         wave_patterns.append(rp.waves)
 
     # now check if all the wave patterns are the same
@@ -55,7 +68,7 @@ def make_flat_patterns(U_l, U_r, vts):
 
     return flat_patterns
 
-def find_critical_vt(U_l, U_r):
+def find_critical_vt(U_l, U_r, vt_side):
     """
     Pretty sure that only magnitude of vt matters. As the function that
     would be used for root finding is discontinuous, shall just use a very
@@ -63,7 +76,7 @@ def find_critical_vt(U_l, U_r):
     the initial pass, then a root may be missed if the wave pattern changes
     to a different pattern then back again.
     """
-    vts = np.linspace(0., 0.85, num=100)
+    vts = np.linspace(0., 0.9, num=100)
     tolerance = 1.e-4
 
     def bisect(vt0, vtend, tol=tolerance):
@@ -77,7 +90,7 @@ def find_critical_vt(U_l, U_r):
         nIts = 0
         while (vtend-vt0) > tol and nIts < maxIts:
             vthalf = 0.5 * (vt0 + vtend)
-            flat_patterns = make_flat_patterns(U_l, U_r, [vt0, vthalf])
+            flat_patterns = make_flat_patterns(U_l, U_r, [vt0, vthalf], vt_side)
 
             if not flat_patterns[0] == flat_patterns[1]:
                 vtend = vthalf
@@ -86,12 +99,12 @@ def find_critical_vt(U_l, U_r):
 
             nIts += 1
 
-        flat_patterns = make_flat_patterns(U_l, U_r, [vt0, vtend])
+        flat_patterns = make_flat_patterns(U_l, U_r, [vt0, vtend], vt_side)
 
         return 0.5 * (vt0 + vtend), flat_patterns
 
     # do a first pass to find where pattern changes
-    flat_patterns = make_flat_patterns(U_l, U_r, vts)
+    flat_patterns = make_flat_patterns(U_l, U_r, vts, vt_side)
     #print(flat_patterns)
 
     critical_vts = []
@@ -127,9 +140,12 @@ if __name__ == "__main__":
     #U_burnt = State(0.24316548798524526, 0.39922932397353039, 0.0,
     #                0.61686385086179807, eos)
 
-    U_burnt = State(1.0, 0.0, 0.0, 1.6, eos)
-    U_reactive = State(0.125, 0.5, 0.0, 1.2, eos_reactive)
+    # FIXME: there is a really weird bug where this breaks if U_r has a
+    # non-zero normal velocity and try to give U_l tangential velocity.
+    U_l = State(1.0, 0.0, 0.0, 1.6, eos)
+    U_r = State(0.125, 0.5, 0.0, 1.2, eos_reactive)
 
-    #check_wave_pattern(U_burnt, U_reactive, vts=[-0.5,-0.1, 0.0, 0.1, 0.5, 0.87])
-    #check_wave_pattern(U_burnt, U_reactive, vts=[0.5, 0.9, 0.95])
-    find_critical_vt(U_burnt, U_reactive)
+    #check_wave_pattern(U_l, U_r, 'l', vts=[-0.5,-0.1, 0.0, 0.1, 0.5, 0.87])
+    #check_wave_pattern(U_l, U_r, 'l', vts=[0.5, 0.55])
+    #check_wave_pattern(U_r, U_l, 'l')
+    find_critical_vt(U_l, U_r, 'l')
