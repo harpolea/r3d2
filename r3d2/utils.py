@@ -7,7 +7,7 @@ Created on Tue Apr 26 09:48:54 2016
 
 import numpy
 from scipy.integrate import odeint
-import wave
+from . import wave
 
 def plot_P_v(rp, ax, var_to_plot = "velocity"):
     """
@@ -31,14 +31,20 @@ def plot_P_v(rp, ax, var_to_plot = "velocity"):
     elif var_to_plot == "volume":
         var_index = 0
         var_invert = True
-        var_name = r"$p$"
+        var_name = r"$V$"
     else:
         raise(ValueError, "var_to_plot ({}) not recognized".format(var_to_plot))
     p_min=min([rp.state_l.p, rp.state_r.p, rp.p_star])
     p_max=max([rp.state_l.p, rp.state_r.p, rp.p_star])
-    ax.plot(rp.state_l.v, rp.state_l.p, 'ko', label=r"$U_L$")
-    ax.plot(rp.state_r.v, rp.state_r.p, 'k^', label=r"$U_R$")
-    ax.plot(rp.state_star_l.v, rp.p_star, 'k*', label=r"$U_*$")
+    if var_to_plot == "velocity":
+        ax.plot(rp.state_l.v, rp.state_l.p, 'ko', label=r"$U_L$")
+        ax.plot(rp.state_r.v, rp.state_r.p, 'k^', label=r"$U_R$")
+        ax.plot(rp.state_star_l.v, rp.p_star, 'k*', label=r"$U_*$")
+    else:
+        ax.plot(1.0/rp.state_l.rho, rp.state_l.p, 'ko', label=r"$U_L$")
+        ax.plot(1.0/rp.state_r.rho, rp.state_r.p, 'k^', label=r"$U_R$")
+        ax.plot(1.0/rp.state_star_l.rho, rp.p_star, 'k*', label=r"$U_{*_L}$")
+        ax.plot(1.0/rp.state_star_r.rho, rp.p_star, 'k<', label=r"$U_{*_R}$")
     dp = max(0.1, p_max-p_min)
     dp_fraction = min(0.5, 5*p_min)*dp
     
@@ -80,8 +86,8 @@ def plot_P_v(rp, ax, var_to_plot = "velocity"):
     if var_invert:
         v_l_1 = 1.0 / v_l_1
         v_r_1 = 1.0 / v_r_1
-        v_l_1 = 1.0 / v_l_2
-        v_r_1 = 1.0 / v_r_2
+        v_l_2 = 1.0 / v_l_2
+        v_r_2 = 1.0 / v_r_2
         
     ax.plot(v_l_1, p_l_1, '--', label=r"${\cal R}_{\leftarrow}$")
     ax.plot(v_l_2, p_l_2, '-', label=r"${\cal S}_{\leftarrow}$")
