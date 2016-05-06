@@ -20,7 +20,6 @@ Contents:
    states
    waves
    tangential_change
-   p_v_plots
 
 Indices and tables
 ==================
