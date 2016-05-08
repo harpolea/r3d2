@@ -4,7 +4,7 @@ R3D2
 .. image:: https://travis-ci.org/harpolea/r3d2.svg?branch=master
     :target: https://travis-ci.org/harpolea/r3d2
 .. image:: http://readthedocs.org/projects/r3d2/badge/?version=latest
-    :target: http://r3d2.readthedocs.org/en/latest/?badge=latest
+    :target: http://r3d2.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 .. image:: https://codecov.io/github/harpolea/r3d2/coverage.svg?branch=master
     :target: https://codecov.io/github/harpolea/r3d2?branch=master
