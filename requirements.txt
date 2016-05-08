@@ -1,2 +1,6 @@
+numpy
+matplotlib>=1.5
+scipy>=0.10
+IPython>=3
 nbsphinx
 ipykernel
