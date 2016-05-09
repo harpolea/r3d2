@@ -8,6 +8,8 @@ R3D2
     :alt: Documentation Status
 .. image:: https://codecov.io/github/harpolea/r3d2/coverage.svg?branch=master
     :target: https://codecov.io/github/harpolea/r3d2?branch=master
+.. image:: https://zenodo.org/badge/21891/harpolea/r3d2.svg
+    :target: https://zenodo.org/badge/latestdoi/21891/harpolea/r3d2
 
 Relativistic Reactive Riemann problem solver for Deflagrations and Detonations
 ------------------------------------------------------------------------------
