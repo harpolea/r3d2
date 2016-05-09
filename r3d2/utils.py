@@ -446,3 +446,77 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
     ax.set_xlabel(var_name)
     ax.set_ylabel(r"$p$")
     ax.legend(bbox_to_anchor=(1, 1), loc='upper left')
+
+
+def find_left(q_r, M=1.):
+    """
+    Finds the left wave for a given Mach number and initial right state.
+
+    Returns the left hand state and speed of the shock wave.
+
+    Parameters
+    ----------
+
+    q_r : State object
+        Known initial right state
+    M : scalar
+        Mach number of the wave we wish to create.
+    """
+
+    p_r = q_r.p
+    c_s = q_r.cs
+
+    #print('c_s = {}'.format(c_s))
+
+    # Limits for p_star guess.
+    # If M < 1, this should be less than the rhs pressure;
+    # if M > 1, should be higher
+    if M < 1.:
+        p_star_lims = [1.e-5 * p_r, p_r]
+    else:
+        p_star_lims = [p_r, 1.e4 * p_r]
+
+    def find_p_star(p_star_guess, q_r, c_s):
+        r"""
+        Finds residual of current Mach number estimate using current guess of the intermediate :math:`p_*` pressure.
+
+        Parameters
+        ----------
+
+        p_star_guess : scalar
+            Current guess of the intermediate :math:`p_*` pressure.
+        q_r : State
+            Known initial right state
+        c_s : scalar
+            Speed of sound in the material
+        """
+        # wavenumber is 2 as nonlinear rhs wave
+        wave_r = wave.Wave(q_r, p_star_guess, 2)
+
+        # get wave speed
+        if wave_r.wavespeed:
+            v_s = wave_r.wavespeed[0]
+        else:
+            # Trivial wave
+            v_s = q_r.wavespeed(2)
+
+        # calculate Mach number
+        M_star = (v_s / numpy.sqrt(1. - v_s**2)) / (c_s / numpy.sqrt(1. - c_s**2))
+
+        return M_star - M
+
+    try:
+        p_star = brentq(find_p_star, p_star_lims[0], p_star_lims[1], args=(q_r, c_s))
+    except ValueError:
+        # brentq will have failed due to the limits, so try
+        # lowering/raising them
+        if M < 1.:
+            p_star_lims[0] *= 1.e-5
+        else:
+            p_star_lims[1] *= 1.e4
+
+        p_star = brentq(find_p_star, p_star_lims[0], p_star_lims[1], args=(q_r, c_s))
+
+    wave_r = wave.Wave(q_r, p_star, 2)
+
+    return wave_r.q_l, wave_r.wavespeed[0]
