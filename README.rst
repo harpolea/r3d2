@@ -57,3 +57,13 @@ Documentation
 -------------
 
 The documentation is available at `<http://r3d2.readthedocs.org>`_ .
+
+Contributing
+------------
+
+Please open a pull request at `<https://github.com/harpolea/r3d2/pulls>`_ .
+
+Support
+-------
+
+Please open an issue at `<https://github.com/harpolea/r3d2/issues>`_ .
