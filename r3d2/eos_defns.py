@@ -1,7 +1,7 @@
 """
 Equations of state.
 """
-
+from __future__ import division
 import numpy
 
 def eos_gamma_law(gamma):
