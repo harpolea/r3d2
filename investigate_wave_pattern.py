@@ -5,6 +5,8 @@ wave pattern changes with tangential velocity.
 from r3d2 import eos_defns, State, RiemannProblem
 from itertools import combinations
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def check_wave_pattern(U_l, U_r, vt_side, vts=[-0.9,0.5,0.0,-0.5,0.9]):
     """
@@ -82,8 +84,14 @@ def find_critical_vt(U_l, U_r, vt_side):
     the initial pass, then a root may be missed if the wave pattern changes
     to a different pattern then back again.
     """
-    vts = np.linspace(0., 0.999, num=100)
-    tolerance = 1.e-4
+    # Stepsize is smaller at edges of domain as otherwise vts at these
+    # points tend to be missed.
+    vts = np.linspace(0., 0.3, num=150)
+    vts = np.append(vts, np.linspace(0.3, 0.95, num=100))
+    vts = np.append(vts, np.linspace(0.95, 0.9999, num=50))
+
+    #np.linspace(0., 0.9999, num=300)
+    tolerance = 1.e-6
 
     def bisect(vt0, vtend, tol=tolerance):
         """
@@ -126,12 +134,16 @@ def find_critical_vt(U_l, U_r, vt_side):
         print('There is one critical tangential velocity ')
     else:
         print('There are {} critical tangential velocities '.format(len(critical_vts)))
-    for i, v in enumerate(critical_vts):
-        print('vt: {}, patterns: {} -> {}'.format(v, ', '.join(critical_patterns[i][0]), ', '.join(critical_patterns[i][1])))
+    try:
+        for i, v in enumerate(critical_vts):
+            print('vt: {}, patterns: {} -> {}'.format(v, ', '.join(critical_patterns[i][0]), ', '.join(critical_patterns[i][1])))
+    except: # sometimes the pattern doesn't like the print - not sure why, but shall just get rid of it for now
+        for i, v in enumerate(critical_vts):
+            print('vt: {}'.format(v))
 
     return critical_vts
 
-def vary_rho(U_l, U_r, vt_side, rhos):
+def vary_rho(U_l, U_r, vt_side, rhos, outfile=None):
 
     critical_vts = np.zeros_like(rhos)
 
@@ -160,6 +172,15 @@ def vary_rho(U_l, U_r, vt_side, rhos):
         else:
             critical_vts[i] = crit_vt[0] # assume only one of them.
             # where it detects two, it's usually because it happens to be able to resolve it well there.
+
+    # plot results and save to file
+    if outfile is not None:
+        plt.plot(rhos, critical_vts, '+', linewidth=2)
+        plt.rc("font", size=18)
+        plt.xlabel(r'$\rho$')
+        plt.ylabel(r'$v_{t, crit}$')
+        plt.draw()
+        plt.savefig(outfile)
 
     return critical_vts
 
@@ -193,7 +214,7 @@ if __name__ == "__main__":
     #critical_vts = find_critical_vt(U_l, U_r, 'l')
     #print('vt = {}'.format(critical_vts))
 
-    rhos = np.linspace(0.5, 15.0, 40)
-    critical_vts = vary_rho(U_l, U_r, 'l', rhos)
+    rhos = np.linspace(0.5, 11.0, 50)
+    critical_vts = vary_rho(U_l, U_r, 'l', rhos, outfile='../Writing/figures/critvt_vs_rho.png')
     for vt in critical_vts:
         print('vt = {}'.format(vt))
