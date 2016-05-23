@@ -8,7 +8,11 @@ Welcome to R3D2's documentation!
 
 R3D2 (Relativistic Reactive Riemann problem solver for Deflagrations and Detonations) solves the Riemann problem for the *relativistic* Euler equation. It also includes the option to include reaction terms, for "infinitely" fast reactions, leading to deflagrations and detonations.
 
-This code is intended for exploring possible solutions and relativistic effects, or for comparing against a compressible code with reactive sources. It is optimized for use with Jupyter notebooks. It is **not** intended for use within a HRSC code: the performance is far too poor, and the assumptions made to extreme.
+Models of ideal hydrodynamics, where there is no viscosity or dissipation, can have solutions with *discontinuities* such as shocks. A simple case is the Riemann Problem, where two constant states are separated by a barrier. After the barrier is removed the solution develops, with *waves* (such as shocks and rarefactions) separating constant states.
+
+The Riemann Problem has three main uses. Efficient, often approximate, solvers are an integral part of many modern hydrodynamic evolution codes. Second, the exact solution is a standard test for such codes. Finally, the solver can illustrate features of discontinuous solutions in more complex scenarios.
+
+This code is intended for exploring possible solutions and relativistic effects, or for comparing against a compressible code with reactive sources. It is optimized for use with Jupyter notebooks. It is **not** intended for use within a HRSC evolution code: the performance is far too poor, and the assumptions made to extreme.
 
 Installation
 ------------
