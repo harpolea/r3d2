@@ -40,7 +40,7 @@ Import the equations of state, State class, and Riemann Problem class:
 Set up an equation of state:
 ::
 
-    >>> eos = eos_defn.eos_gamma_law(5.0/3.0)
+    >>> eos = eos_defns.eos_gamma_law(5.0/3.0)
 
 Set up the left and right states:
 ::
