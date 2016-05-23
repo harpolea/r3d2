@@ -53,7 +53,23 @@ Solve the Riemann Problem:
 
     >>> rp = RiemannProblem(U_L, U_R)
 
-The output can be examined for details of the solution and its wave structure. However, the classes are optimized for display in a Jupyter notebook. See the documentation for more detail.
+The output can be examined for details of the solution and its wave structure. For example, the three waves are each built of wave *sections*, which can be examined to check their type, via e.g.
+
+    >>> rp.waves[0].wave_sections
+
+and its speed (or the range of speeds) can be examined via
+
+    >>> rp.waves[0].wavespeed
+
+The states that the waves separate can be found via, e.g.,
+
+    >>> rp.waves[0].q_r
+
+and the detailed values via
+
+    >>> rp.waves[0].q_r.state()
+
+However, the classes are optimized for display in a Jupyter notebook. See the documentation for more detail.
 
 Documentation
 -------------
