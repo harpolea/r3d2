@@ -50,7 +50,8 @@ def rarefaction_dwdp(w, p, q_known, wavenumber):
 
 def mass_flux_squared(q_start, p_end, unknown_eos=None):
     r"""
-    Calculates the square of the mass flux through a region, given the state at the start of the region and the pressure at the end.
+    Calculates the square of the mass flux through a region, given the state at
+    the start of the region and the pressure at the end.
 
     Parameters
     ----------
@@ -167,6 +168,10 @@ def post_discontinuity_state(p_star, q_start, lr_sign, label, j2, rho, eps, dp,
     return v_shock, q_end
 
 class WaveSection(object):
+    """
+    A wave section is a part of a wave. It has a single type, such as a shock
+    or rarefaction.
+    """
 
     def __init__(self, q_start, p_end, wavenumber):
         """
@@ -220,6 +225,10 @@ class WaveSection(object):
 #       to use the same signature for all subclasses - all could
 #       take argument q_end and access variable q_end.p.
 class Contact(WaveSection):
+    """
+    A linear discontinuity. This will always be the central wave (wavenumber=1)
+    for the hydrodynamic case.
+    """
 
     def __init__(self, q_start, q_end, wavenumber):
         """
@@ -250,6 +259,9 @@ class Contact(WaveSection):
         "states must match for a contact"
 
 class Rarefaction(WaveSection):
+    """
+    A continuous wave section across which pressure decreases.
+    """
 
     def __init__(self, q_start, p_end, wavenumber):
         """
@@ -320,6 +332,9 @@ class Rarefaction(WaveSection):
         return xi, data
 
 class Shock(WaveSection):
+    """
+    A discontinuous wave section across which pressure increases.
+    """
 
     def __init__(self, q_start, p_end, wavenumber):
         """
@@ -361,6 +376,10 @@ class Shock(WaveSection):
 
 # TODO: Check that q is correctly initialized across each wave in det, defl.
 class Deflagration(WaveSection):
+    """
+    A discontinuous wave section across which pressure decreases and a reaction
+    takes place.
+    """
 
     def __init__(self, q_start, p_end, wavenumber):
         """
@@ -433,6 +452,10 @@ class Deflagration(WaveSection):
         self.wavespeed = [v_deflagration]
 
 class Detonation(WaveSection):
+    """
+    A discontinuous wave section across which pressure increases and a reaction
+    takes place.
+    """
 
     def __init__(self, q_start, p_end, wavenumber):
         """
@@ -583,6 +606,9 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
 
 
 class Wave(object):
+    """
+    A wave is a union of wave sections, separating constant states.
+    """
 
     def __init__(self, q_known, unknown_value, wavenumber):
         """
