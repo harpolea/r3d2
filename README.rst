@@ -3,11 +3,13 @@ R3D2
 
 .. image:: https://travis-ci.org/harpolea/r3d2.svg?branch=master
     :target: https://travis-ci.org/harpolea/r3d2
-.. image:: http://readthedocs.org/projects/r3d2/badge/?version=latest
+.. image:: https://readthedocs.org/projects/r3d2/badge/?version=latest
     :target: http://r3d2.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 .. image:: https://codecov.io/github/harpolea/r3d2/coverage.svg?branch=master
     :target: https://codecov.io/github/harpolea/r3d2?branch=master
+.. image:: https://zenodo.org/badge/21891/harpolea/r3d2.svg
+    :target: https://zenodo.org/badge/latestdoi/21891/harpolea/r3d2
 
 Relativistic Reactive Riemann problem solver for Deflagrations and Detonations
 ------------------------------------------------------------------------------
@@ -38,7 +40,7 @@ Import the equations of state, State class, and Riemann Problem class:
 Set up an equation of state:
 ::
 
-    >>> eos = eos_defn.eos_gamma_law(5.0/3.0)
+    >>> eos = eos_defns.eos_gamma_law(5.0/3.0)
 
 Set up the left and right states:
 ::

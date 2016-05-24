@@ -8,7 +8,7 @@ Welcome to R3D2's documentation!
 
 R3D2 (Relativistic Reactive Riemann problem solver for Deflagrations and Detonations) solves the Riemann problem for the *relativistic* Euler equation. It also includes the option to include reaction terms, for "infinitely" fast reactions, leading to deflagrations and detonations.
 
-This code is intended for exploring possible solutions and relativistic effects, or for comparing against a compressible code with reactive sources. It is optimized for use with Jupyter notebooks. It is **not** intended for use within a HRSC code: the performance is far too poor, and the assumptions made to extreme.
+This code is intended for exploring possible solutions and relativistic effects, or for comparing against a compressible code with reactive sources. It is optimized for use with Jupyter notebooks. It is **not** intended for use within a HRSC code: the performance is far too poor, and the assumptions made too extreme.
 
 Installation
 ------------
@@ -34,7 +34,7 @@ Import the equations of state, State class, and Riemann Problem class:
 Set up an equation of state:
 ::
 
-    >>> eos = eos_defn.eos_gamma_law(5.0/3.0)
+    >>> eos = eos_defns.eos_gamma_law(5.0/3.0)
 
 Set up the left and right states:
 ::
