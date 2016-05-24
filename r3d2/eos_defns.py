@@ -3,7 +3,7 @@ Equations of state.
 
 These are dictionaries of functions that relate thermodynamic variables.
 """
-
+from __future__ import division
 import numpy
 
 def eos_gamma_law(gamma):

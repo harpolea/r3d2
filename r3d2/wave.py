@@ -8,7 +8,7 @@ Wave class.
 
 Core functions and classes that solve across a wave, or wave section.
 """
-
+from __future__ import division
 import numpy
 from scipy.optimize import brentq
 from scipy.integrate import odeint

@@ -271,7 +271,7 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
     ax.set_ylim(0, p_max+0.2*dp_fraction)
     #plt.xlim(v_min-0.5*dv, v_max+0.5*dv)
 
-    # now for weird 3 wave case
+    # now for 3 wave case
     if len(rp.waves[0].wave_sections) == 3:
         #ax.set_ylim(0, p_max+6*dp_fraction)
 

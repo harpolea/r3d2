@@ -8,7 +8,7 @@ State class
 
 The fluid State (key variables plus equation of state) at a point.
 """
-
+from __future__ import division
 import numpy
 
 class State(object):

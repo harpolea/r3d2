@@ -9,7 +9,7 @@ Riemann Problem class.
 Top level solution and plotting functions for the solution of a relativistic,
 reactive Riemann Problem.
 """
-
+from __future__ import division
 import numpy
 from scipy.optimize import brentq
 
