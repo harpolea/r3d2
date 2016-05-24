@@ -3,6 +3,8 @@
 Created on Tue Apr 26 09:48:54 2016
 
 @author: ih3
+
+Utility functions for the Riemann Problem and Wave solutions.
 """
 
 import numpy

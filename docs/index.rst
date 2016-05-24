@@ -82,10 +82,3 @@ Contents
    waves
    tangential_change
    p_v_plots
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

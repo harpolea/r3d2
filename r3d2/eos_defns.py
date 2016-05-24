@@ -1,10 +1,27 @@
 """
 Equations of state.
+
+These are dictionaries of functions that relate thermodynamic variables.
 """
 from __future__ import division
 import numpy
 
 def eos_gamma_law(gamma):
+    r"""
+    Simple gamma law equation of state :math:`p = (\gamma - 1) \rho \epsilon`.
+    
+    Parameters
+    ----------
+    
+    gamma : double
+        Ratio of specific heats
+        
+    Returns
+    -------
+    
+    eos : dictionary
+        Functions giving eg pressure or enthalpy
+    """
 
     p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * eps
     h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps
@@ -20,6 +37,31 @@ def eos_gamma_law(gamma):
     return eos
 
 def eos_gamma_law_react(gamma, q, Cv, t_i, eos_inert):
+    r"""
+    Simple gamma law equation of state including binding energy due to 
+    reactions.
+    
+    Parameters
+    ----------
+    
+    gamma : double
+        Ratio of specific heats
+    q : double
+        Binding energy
+    Cv : double
+        Heat capacity at constant volume
+    t_i : double
+        Ignition temperature
+    eos_inert : EOS
+        Equation of state after the reaction takes place.
+    
+        
+    Returns
+    -------
+    
+    eos : dictionary
+        Functions giving eg pressure or enthalpy
+    """
 
     p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * (eps - q)
     h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps + (1.0 - gamma) * q
