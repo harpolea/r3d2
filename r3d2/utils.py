@@ -12,7 +12,22 @@ from matplotlib.transforms import offset_copy
 import matplotlib.transforms as mtrans
 from . import wave
 
-def rarefaction(ps, q_start, lr_sign):
+def _rarefaction(ps, q_start, lr_sign):
+    """
+    Finds the velocities across a rarefaction wave given the pressures, known
+    state on one side of the wave and direction the wave is travelling.
+
+    Parameters
+    ----------
+
+    ps : array
+        Array of pressures
+    q_start : State object
+        Known initial state on one side of the wave.
+    lr_sign : integer
+        Direction in which the wave is travelling: -1 if left-going, +1 if
+        right-going
+    """
     vs = numpy.zeros_like(ps)
     for i, p in enumerate(ps):
         w_all = odeint(wave.rarefaction_dwdp,
@@ -24,7 +39,23 @@ def rarefaction(ps, q_start, lr_sign):
         vs[i] = w_all[-1, 1]
     return vs
 
-def shock(ps, q_start, lr_sign):
+def _shock(ps, q_start, lr_sign):
+    """
+    Finds the velocities across a shock wave given the pressures, known
+    state on one side of the wave and direction the wave is travelling.
+
+    Parameters
+    ----------
+
+    ps : array
+        Array of pressures
+    q_start : State object
+        Known initial state on one side of the wave.
+    lr_sign : integer
+        Direction in which the wave is travelling: -1 if left-going, +1 if
+        right-going
+    """
+
     vs = numpy.zeros_like(ps)
     for i, p in enumerate(ps):
         j2, rho, eps, diffp = wave.mass_flux_squared(q_start,
@@ -36,7 +67,23 @@ def shock(ps, q_start, lr_sign):
         vs[i] = q_end.v
     return vs
 
-def deflagration(ps, q_start, lr_sign):
+def _deflagration(ps, q_start, lr_sign):
+    """
+    Finds the velocities across a deflagration wave given the pressures, known
+    state on one side of the wave and direction the wave is travelling.
+
+    Parameters
+    ----------
+
+    ps : array
+        Array of pressures
+    q_start : State object
+        Known initial state on one side of the wave.
+    lr_sign : integer
+        Direction in which the wave is travelling: -1 if left-going, +1 if
+        right-going
+    """
+
     vs = numpy.zeros_like(ps)
     for i, p in enumerate(ps):
         j2, rho, eps, diffp = wave.mass_flux_squared(q_start,
@@ -59,7 +106,23 @@ def deflagration(ps, q_start, lr_sign):
         vs[i] = q_end.v
     return vs
 
-def detonation(ps, q_start, lr_sign):
+def _detonation(ps, q_start, lr_sign):
+    """
+    Finds the velocities across a detonation wave given the pressures, known
+    state on one side of the wave and direction the wave is travelling.
+
+    Parameters
+    ----------
+
+    ps : array
+        Array of pressures
+    q_start : State object
+        Known initial state on one side of the wave.
+    lr_sign : integer
+        Direction in which the wave is travelling: -1 if left-going, +1 if
+        right-going
+    """
+
     vs = numpy.zeros_like(ps)
     for i, p in enumerate(ps):
         j2, rho, eps, diffp = wave.mass_flux_squared(q_start,
@@ -94,7 +157,24 @@ def detonation(ps, q_start, lr_sign):
         vs[i] = q_unknown.v
     return vs
 
-def find_pre_ignition(v_s, j2, rho, lr_sign):
+def _find_pre_ignition(v_s, j2, rho, lr_sign):
+    """
+    Finds the velocity of the wave on the pre-ignition side of the reaction discontinuity. As this is done by solving a quadratic equation, it returns two possible solutions
+
+    Parameters
+    ----------
+
+    v_s : scalar
+        wavespeed of the discontinuity
+    j2 : scalar
+        Mass flux squared
+    rho: scalar
+        density
+    lr_sign: integer
+        Direction in which the wave is travelling: -1 if left-going, +1 if
+        right-going
+    """
+
     A = rho**2 / (j2 *
         (v_s - lr_sign * numpy.sqrt(1 + rho**2 / j2)))
 
@@ -102,7 +182,7 @@ def find_pre_ignition(v_s, j2, rho, lr_sign):
            -0.5 * A - numpy.sqrt(1 + A * v_s)
 
 
-def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
+def plot_P_v(rp, ax, fig, var_to_plot="velocity"):
     """
     Plot the curves joining states within phase space for the Riemann Problem.
 
@@ -113,6 +193,8 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
         The Riemann Problem to be plotted
     ax : matplotlib axis
         The axis on which to plot
+    fig: matplotlib figure
+        The figure on which to plot
     var_to_plot : string
         The name of the variable to plot on the y axis
     """
@@ -166,12 +248,12 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
     v_r_dt = numpy.zeros_like(p_r_dt)
 
     # rarefaction curves
-    v_l_1 = rarefaction(p_l_1, rp.state_l, -1)
-    v_r_1 = rarefaction(p_r_1, rp.state_r, 1)
+    v_l_1 = _rarefaction(p_l_1, rp.state_l, -1)
+    v_r_1 = _rarefaction(p_r_1, rp.state_r, 1)
 
     # shock curves
-    v_l_2 = shock(p_l_2, rp.state_l, -1)
-    v_r_2 = shock(p_r_2, rp.state_r, 1)
+    v_l_2 = _shock(p_l_2, rp.state_l, -1)
+    v_r_2 = _shock(p_r_2, rp.state_r, 1)
 
     plot_inert = numpy.ones(4, dtype=numpy.bool)
     # check to make sure there is actually a wave - turn off plotting if not
@@ -200,8 +282,8 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
                 plot_inert[1] = False # get rid of left shock, as this is now a detonation
                 # cut off rarefaction at CJ point
                 p_l_1 = numpy.linspace(p_min-0.1*dp_fraction, CJ_p-1e-3*dp_fraction)
-                v_l_1 = rarefaction(p_l_1, CJ_q, -1)
-                v_l_df = deflagration(p_l_df, CJ_q, -1)
+                v_l_1 = _rarefaction(p_l_1, CJ_q, -1)
+                v_l_df = _deflagration(p_l_df, CJ_q, -1)
 
             elif s.type == 'Detonation':
                 CJ_v, CJ_p, CJ_rho, CJ_eps = s.q_end.v, s.q_end.p, s.q_end.rho, s.q_end.eps
@@ -213,15 +295,15 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
                 verticalalignment='bottom')
                 p_l_dt = numpy.linspace(rp.state_l.p+1e-3*dp_fraction, CJ_p-1e-3*dp_fraction)
                 p_l_df = numpy.linspace(p_min-0.1*dp_fraction, rp.state_l.p-1e-3*dp_fraction)
-                plot_inert[0] = False # get rid of left rarefaction - it's now a deflagration
+                plot_inert[0] = False # get rid of left _shock - it's now a deflagration
                 # cut off shock at CJ point
                 p_l_2 = numpy.linspace(CJ_p+1e-3*dp_fraction, p_max+0.2*dp_fraction)
                 # redo shock
-                v_l_2 = shock(p_l_2, CJ_q, -1)
-                v_l_df = deflagration(p_l_df, rp.state_l, -1)
+                v_l_2 = _shock(p_l_2, CJ_q, -1)
+                v_l_df = _deflagration(p_l_df, rp.state_l, -1)
 
             if s.type == 'Detonation' or s.type == 'Deflagration':
-                v_l_dt = detonation(p_l_dt, rp.state_l, -1)
+                v_l_dt = _detonation(p_l_dt, rp.state_l, -1)
 
     # right wave
     if len(rp.waves[-1].wave_sections) == 2 or rp.waves[-1].wave_sections[0].type == 'Deflagration' or\
@@ -243,8 +325,8 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
                 plot_inert[3] = False # get rid of right shock - now a deflagration
                 # cut off rarefaction at CJ point
                 p_r_1 = numpy.linspace(p_min-0.1*dp_fraction, CJ_p-1e-3*dp_fraction)
-                v_r_1 = rarefaction(p_r_1, CJ_q, 1)
-                v_r_df = deflagration(p_r_df, CJ_q, 1)
+                v_r_1 = _rarefaction(p_r_1, CJ_q, 1)
+                v_r_df = _deflagration(p_r_df, CJ_q, 1)
 
             elif s.type == 'Detonation':
                 CJ_v, CJ_p, CJ_rho, CJ_eps = s.q_end.v, s.q_end.p, s.q_end.rho, s.q_end.eps
@@ -259,11 +341,11 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
                 plot_inert[2] = False # get rid of right rarefaction - it's now a deflagration
                 # cut off shock at CJ point
                 p_r_2 = numpy.linspace(CJ_p+1e-3*dp_fraction, p_max+0.2*dp_fraction)
-                v_r_2 = shock(p_r_2, CJ_q, 1)
-                v_r_df = rarefaction(p_r_df, rp.state_r, 1)
+                v_r_2 = _shock(p_r_2, CJ_q, 1)
+                v_r_df = _rarefaction(p_r_df, rp.state_r, 1)
 
             if s.type == 'Detonation' or s.type == 'Deflagration':
-                v_r_dt = detonation(p_r_dt, rp.state_r, 1)
+                v_r_dt = _detonation(p_r_dt, rp.state_r, 1)
 
     # put this here as going to change it for 3 wave case
     ax.set_ylim(0, p_max+0.2*dp_fraction)
@@ -283,7 +365,7 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
             rp.waves[0].wave_sections[1].q_start,
             rp.waves[0].wave_sections[1].q_end.p,
             rp.waves[0].wave_sections[1].q_start.eos)
-        v1, v2 = find_pre_ignition(
+        v1, v2 = _find_pre_ignition(
             rp.waves[0].wave_sections[1].wavespeed,
             j2, rho, -1)
         # choose the one that is closest to other ignition velocity
@@ -309,11 +391,11 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
              verticalalignment='bottom')
                 # cut off rarefaction and shock at CJ point
                 p_l_1 = numpy.linspace(p_min-0.1*dp_fraction, CJ_p-1e-6*dp_fraction)
-                v_l_1 = rarefaction(p_l_1, CJ_q, -1)
+                v_l_1 = _rarefaction(p_l_1, CJ_q, -1)
                 p_l_2 = numpy.linspace(rp.state_l.p+1e-6*dp_fraction, i_p)
-                v_l_2 = shock(p_l_2, rp.state_l, -1)
+                v_l_2 = _shock(p_l_2, rp.state_l, -1)
                 p_l_df = numpy.linspace(CJ_p+1e-6*dp_fraction, p_max+0.1*dp_fraction)
-                v_l_df = rarefaction(p_l_df, CJ_q, -1)
+                v_l_df = _rarefaction(p_l_df, CJ_q, -1)
 
             elif s.type == 'Detonation':
                 plot_burning[2] = True
@@ -323,12 +405,12 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
                 ax.text(CJ_v, CJ_p, r"$CJ$", transform=trans_offset, horizontalalignment='center',
              verticalalignment='bottom')
                 p_l_dt = numpy.linspace(rp.state_l.p+1e-3*dp_fraction, CJ_p+1e-6*dp_fraction)
-                v_l_dt = detonation(p_l_dt, rp.state_l, -1)
+                v_l_dt = _detonation(p_l_dt, rp.state_l, -1)
                 # cut off rarefaction and shock at CJ point
                 p_l_1 = numpy.linspace(CJ_p+1e-6*dp_fraction, p_max+0.2*dp_fraction)
-                v_l_1 = rarefaction(p_l_1, CJ_q, -1)
+                v_l_1 = _rarefaction(p_l_1, CJ_q, -1)
                 p_l_2 = numpy.linspace(p_min-0.1*dp_fraction, CJ_p-1e-6*dp_fraction)
-                v_l_2 = shock(p_l_2, CJ_q, -1)
+                v_l_2 = _shock(p_l_2, CJ_q, -1)
 
             if s.type == 'Deflagration' or s.type == 'Detonation':
                 distance = (i_v2 - v_l_df)**2
@@ -359,7 +441,7 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
             rp.waves[-1].wave_sections[1].q_start,
             rp.waves[-1].wave_sections[1].q_end.p,
             rp.waves[-1].wave_sections[1].q_start.eos)
-        v1, v2 = find_pre_ignition(
+        v1, v2 = _find_pre_ignition(
             rp.waves[-1].wave_sections[1].wavespeed,
             j2, rho, 1)
         # choose the one that is closest to other ignition velocity
@@ -383,11 +465,11 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
                 verticalalignment='bottom')
                 # cut off rarefaction at CJ point
                 p_r_1 = numpy.linspace(p_min-0.1*dp_fraction, CJ_p-1e-3*dp_fraction)
-                v_r_1 = rarefaction(p_r_1, CJ_q, 1)
+                v_r_1 = _rarefaction(p_r_1, CJ_q, 1)
                 p_r_2 = numpy.linspace(rp.state_r.p+1e-3*dp_fraction, i_p)
-                v_r_2 = shock(p_r_2, rp.state_r, 1)
+                v_r_2 = _shock(p_r_2, rp.state_r, 1)
                 p_r_df = numpy.linspace(CJ_p+1e-6*dp_fraction, p_max+5*dp_fraction)
-                v_r_df = deflagration(p_r_df, CJ_q, 1)
+                v_r_df = _deflagration(p_r_df, CJ_q, 1)
 
             elif s.type == 'Detonation':
                 plot_burning[3] = True
@@ -398,11 +480,11 @@ def plot_P_v(rp, ax, fig, var_to_plot = "velocity"):
                 verticalalignment='bottom')
                 # cut off shock at CJ point
                 p_r_1 = numpy.linspace(rp.state_r.p+1e-3*dp_fraction, p_max+0.2*dp_fraction)
-                v_r_1 = rarefaction(p_r_1, rp.state_r, 1)
+                v_r_1 = _rarefaction(p_r_1, rp.state_r, 1)
                 p_r_2 = numpy.linspace(p_min-0.1*dp_fraction, CJ_p-1e-3*dp_fraction)
-                v_r_2 = shock(p_r_2, CJ_q, 1)
+                v_r_2 = _shock(p_r_2, CJ_q, 1)
                 p_r_dt = numpy.linspace(CJ_p+1e-6*dp_fraction, p_max+5*dp_fraction)
-                v_r_dt = detonation(p_r_dt, CJ_q, 1)
+                v_r_dt = _detonation(p_r_dt, CJ_q, 1)
 
             if s.type == 'Deflagration' or s.type == 'Detonation':
                 # find point of intersection of the two curves
