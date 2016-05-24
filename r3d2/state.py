@@ -4,7 +4,7 @@ Created on Mon Feb 15 11:26:41 2016
 
 @author: ih3
 """
-
+from __future__ import division
 import numpy
 
 class State(object):

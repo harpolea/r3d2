@@ -4,7 +4,7 @@ Created on Mon Feb 15 11:23:51 2016
 
 @author: ih3
 """
-
+from __future__ import division
 import numpy
 from scipy.optimize import brentq
 
