@@ -49,7 +49,7 @@ def make_flat_patterns(U_l, U_r, vts, vt_side):
         # first change the vt
         if vt_side == 'l':
             U_l = State(rho_l, v_l, vt, eps_l, eos_l)
-            U_r = State(rho_r, v_r, 0.0, eps_r, eos_r)
+            #U_r = State(rho_r, v_r, 0.0, eps_r, eos_r)
         else:
             U_r = State(rho_r, v_r, vt, eps_r, eos_r)
         rp = RiemannProblem(U_l, U_r)
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     # FIXME: there is a really weird bug where this breaks if U_r has a
     # non-zero normal velocity and try to give U_l tangential velocity.
     U_l = State(1.0, 0.0, 0.0, 1.6, eos)
-    U_r = State(0.125, 0.5, 0.0, 1.2, eos_reactive)
+    U_r = State(0.125, 0.0, 0.0, 1.2, eos_reactive)
 
     #check_wave_pattern(U_l, U_r, 'l', vts=[-0.5,-0.1, 0.0, 0.1, 0.5, 0.87])
     #check_wave_pattern(U_l, U_r, 'l', vts=[0.5, 0.55])

@@ -11,6 +11,7 @@ def eos_gamma_law(gamma):
     cs_from_rho_eps = lambda rho, eps : \
     numpy.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
     h_from_rho_p = lambda rho, p : 1.0 + gamma / (gamma - 1.0) * p / rho
+    rho_from_p_eps = lambda p, eps: p / ((gamma - 1.0) * eps)
 
     def t_from_rho_eps(rho, eps):
         raise(NotImplementedError, "t_from_rho_eps not implemented yet for polytrope eos")
@@ -19,7 +20,8 @@ def eos_gamma_law(gamma):
            'h_from_rho_eps' : h_from_rho_eps,
            'cs_from_rho_eps' : cs_from_rho_eps,
            'h_from_rho_p' : h_from_rho_p,
-           't_from_rho_eps' : t_from_rho_eps}
+           't_from_rho_eps' : t_from_rho_eps,
+           'rho_from_p_eps' : rho_from_p_eps}
 
     return eos
 
