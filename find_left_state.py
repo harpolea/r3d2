@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # standard 5/3 gamma law EoS
     gamma = 5./3.
     K = 1.
-    eos = eos_defns.eos_gamma_law(gamma)
+    eos = eos_defns.Gamma_law(gamma)
 
     # right state
     rho_r, v_r, vt_r = (0.001, 0.0, 0.0)

@@ -136,9 +136,10 @@ class WaveSection(metaclass=ABCMeta):
 
         return j2, rho, eps, dp
 
-    def deflagration_root(self, p_0_star, q_precursor, unknown_eos, wavenumber, label):
+    @staticmethod
+    def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
         lr_sign = wavenumber - 1
-        j2, rho, eps, dp = self.mass_flux_squared(q_precursor, p_0_star, unknown_eos)
+        j2, rho, eps, dp = WaveSection.mass_flux_squared(q_precursor, p_0_star, unknown_eos)
         if j2 < 0:
             return 10.0 # Unphysical part of Crussard curve, return a random number
         j = numpy.sqrt(j2)
@@ -617,7 +618,8 @@ class Wave(object):
         t_i = q_precursor.eos.t_i_from_rho_eps(q_precursor.rho, q_precursor.eps)
         return t_precursor - t_i
 
-    def build_reactive_wave_section(self, q_known, unknown_value, wavenumber):
+    @staticmethod
+    def build_reactive_wave_section(q_known, unknown_value, wavenumber):
         """
         Object factory for the WaveSection; reactive case
         """
@@ -643,15 +645,15 @@ class Wave(object):
                 if t_known < t_i: # Need a precursor shock
                     p_min = unknown_value
                     p_max = q_known.p
-                    t_min = self.precursor_root(p_min, q_known, wavenumber)
-                    t_max = self.precursor_root(p_max, q_known, wavenumber)
+                    t_min = Wave.precursor_root(p_min, q_known, wavenumber)
+                    t_max = Wave.precursor_root(p_max, q_known, wavenumber)
                     assert(t_min < 0)
 
                     if t_max <= 0:
                         p_max *= 2
-                        t_max = self.precursor_root(p_max, q_known, wavenumber)
+                        t_max = Wave.precursor_root(p_max, q_known, wavenumber)
 
-                    p_0_star = brentq(self.precursor_root, p_min, p_max,
+                    p_0_star = brentq(Wave.precursor_root, p_min, p_max,
                                       args=(q_known, wavenumber))
                     precursor_shock = Shock(q_known, p_0_star, wavenumber)
                     wavesections.append(precursor_shock)
