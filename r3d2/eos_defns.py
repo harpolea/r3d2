@@ -2,113 +2,128 @@
 Equations of state.
 """
 
+import sys
 import numpy
+from abc import ABCMeta, abstractmethod
 
-def eos_gamma_law(gamma):
+class EOS(metaclass=ABCMeta):
+    _fields = []
 
-    p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * eps
-    h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps
-    cs_from_rho_eps = lambda rho, eps : \
-    numpy.sqrt(gamma * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
-    h_from_rho_p = lambda rho, p : 1.0 + gamma / (gamma - 1.0) * p / rho
-    rho_from_p_eps = lambda p, eps: p / ((gamma - 1.0) * eps)
+    def __init__(self, *args):
+        for name, value in zip(self._fields, args):
+            setattr(self, name, value)
 
-    def t_from_rho_eps(rho, eps):
-        raise(NotImplementedError, "t_from_rho_eps not implemented yet for polytrope eos")
+    def p_from_rho_eps(self, rho, eps):
+        self.implementation_error()
 
-    eos = {'p_from_rho_eps' : p_from_rho_eps,
-           'h_from_rho_eps' : h_from_rho_eps,
-           'cs_from_rho_eps' : cs_from_rho_eps,
-           'h_from_rho_p' : h_from_rho_p,
-           't_from_rho_eps' : t_from_rho_eps,
-           'rho_from_p_eps' : rho_from_p_eps}
+    def h_from_rho_eps(self, rho, eps):
+        self.implementation_error()
 
-    return eos
+    def cs_from_rho_eps(self, rho, eps):
+        self.implementation_error()
 
-def eos_gamma_law_react(gamma, q, Cv, t_i, eos_inert):
+    def h_from_rho_p(self, rho, p):
+        self.implementation_error()
 
-    p_from_rho_eps = lambda rho, eps : (gamma - 1.0) * rho * (eps - q)
-    h_from_rho_eps = lambda rho, eps : 1.0 + gamma * eps + (1.0 - gamma) * q
-    cs_from_rho_eps = lambda rho, eps : \
-    numpy.sqrt(gamma * (gamma - 1.0) * (eps - q) / \
-    (1.0 + gamma * eps + (1.0 - gamma) * q))
-    h_from_rho_p = lambda rho, p : 1.0 + gamma / (gamma - 1.0) * p / rho + q
-    t_from_rho_eps = lambda rho, eps : (eps - q) / Cv
+    def rho_from_p_eps(self, p, eps):
+        self.implementation_error()
+
+    def t_from_rho_eps(self, rho, eps):
+        self.implementation_error()
+
+    def implementation_error(self):
+        raise NotImplementedError(sys._getframe(1).f_code.co_name + " not implemented for " + self.__class__.__name__)
+
+class Gamma_law(EOS):
+    _fields = ['gamma']
+
+    def p_from_rho_eps(self, rho, eps):
+        return (self.gamma - 1.0) * rho * eps
+
+    def h_from_rho_eps(self, rho, eps):
+        return 1.0 + self.gamma * eps
+
+    def cs_from_rho_eps(self, rho, eps):
+        return numpy.sqrt(self.gamma * self.p_from_rho_eps(rho, eps) / (rho * self.h_from_rho_eps(rho, eps)))
+
+    def h_from_rho_p(self, rho, p):
+        return 1.0 + self.gamma / (self.gamma - 1.0) * p / rho
+
+    def rho_from_p_eps(self, p, eps):
+        return p / ((self.gamma - 1.0) * eps)
+
+class Gamma_law_react(EOS):
+    _fields = ['gamma', 'q', 'Cv', 't_i', 'eos_inert']
+
+    def p_from_rho_eps(self, rho, eps):
+        return (self.gamma - 1.0) * rho * (eps - self.q)
+
+    def h_from_rho_eps(self, rho, eps):
+        return 1.0 + self.gamma * eps + (1.0 - self.gamma) * self.q
+
+    def cs_from_rho_eps(self, rho, eps):
+        return numpy.sqrt(self.gamma * (self.gamma - 1.0) * (eps - self.q) / \
+        (1.0 + self.gamma * eps + (1.0 - self.gamma) * self.q))
+
+    def h_from_rho_p(self, rho, p):
+        return 1.0 + self.gamma / (self.gamma - 1.0) * p / rho + self.q
+
+    def t_from_rho_eps(self, rho, eps):
+        return (eps - self.q) / self.Cv
 
     # done for backwards compatibility
-    def t_i_from_rho_eps(rho, eps):
-        if t_i is None:
-            return 2.5 * rho**(2./3.) / (eps-q)**(1./3.)
+    def t_i_from_rho_eps(self, rho, eps):
+        if self.t_i is None:
+            return 2.5 * rho**(2./3.) / (eps-self.q)**(1./3.)
         else:
-            return t_i
+            return self.t_i
 
-    eos = {'p_from_rho_eps' : p_from_rho_eps,
-           'h_from_rho_eps' : h_from_rho_eps,
-           'cs_from_rho_eps' : cs_from_rho_eps,
-           'h_from_rho_p' : h_from_rho_p,
-           't_from_rho_eps' : t_from_rho_eps,
-           'q_available' : q,
-           't_ignition' : t_i_from_rho_eps,
-           'eos_inert' : eos_inert}
+class Polytrope_law(EOS):
+    _fields = ['gamma', 'gamma_th', 'rho_transition', 'k']
 
-    return eos
-
-def eos_polytrope_law(gamma, gamma_th, rho_transition, k):
-
-    def p_from_rho_eps(rho, eps):
+    def p_from_rho_eps(self, rho, eps):
         if (rho < rho_transition):
-            p_cold = k[0] * rho**gamma[0]
-            eps_cold = p_cold / rho / (gamma[0] - 1.)
+            p_cold = self.k[0] * rho**self.gamma[0]
+            eps_cold = p_cold / rho / (self.gamma[0] - 1.)
         else:
-            p_cold = k[1] * rho**gamma[1]
-            eps_cold = p_cold / rho / (gamma[1] - 1.) - \
-                k[1] * rho_transition**(gamma[1] - 1.) + \
-                k[0] * rho_transition**(gamma[0] - 1.)
+            p_cold = self.k[1] * rho**self.gamma[1]
+            eps_cold = p_cold / rho / (self.gamma[1] - 1.) - \
+                self.k[1] * self.rho_transition**(self.gamma[1] - 1.) + \
+                self.k[0] * self.rho_transition**(self.gamma[0] - 1.)
 
-        p_th = max(0.0, (gamma_th - 1.0) * rho * (eps - eps_cold))
+        p_th = max(0.0, (self.gamma_th - 1.0) * rho * (eps - eps_cold))
 
         return p_cold + p_th
 
-    def h_from_rho_eps(rho, eps):
-        if (rho < rho_transition):
-            p_cold = k[0] * rho**gamma[0]
-            eps_cold = p_cold / rho / (gamma[0] - 1.0)
+    def h_from_rho_eps(self, rho, eps):
+        if (rho < self.rho_transition):
+            p_cold = self.k[0] * rho**self.gamma[0]
+            eps_cold = p_cold / rho / (self.gamma[0] - 1.0)
         else:
-            p_cold = k[1] * rho**gamma[1]
-            eps_cold = p_cold / rho / (gamma[1] - 1.0) - \
-                k[1] * rho_transition**(gamma[1] - 1.0) + \
-                k[0] * rho_transition**(gamma[0] - 1.0)
+            p_cold = k[1] * rho**self.gamma[1]
+            eps_cold = p_cold / rho / (self.gamma[1] - 1.0) - \
+                self.k[1] * self.rho_transition**(self.gamma[1] - 1.0) + \
+                self.k[0] * self.rho_transition**(self.gamma[0] - 1.0)
 
-        p_th = max(0., (gamma_th - 1.) * rho * (eps - eps_cold))
+        p_th = max(0., (self.gamma_th - 1.) * rho * (eps - eps_cold))
 
         return 1. + eps_cold + eps + (p_cold + p_th)/ rho
 
-    def cs_from_rho_eps(rho, eps):
-        return numpy.sqrt(gamma[0] * p_from_rho_eps(rho, eps) / (rho * h_from_rho_eps(rho, eps)))
+    def cs_from_rho_eps(self, rho, eps):
+        return numpy.sqrt(self.gamma[0] * self.p_from_rho_eps(rho, eps) / (rho * self.h_from_rho_eps(rho, eps)))
 
     # TODO: fix
-    def h_from_rho_p(rho, p):
-        if (rho < rho_transition):
-            p_cold = k[0] * rho**gamma[0]
-            eps_cold = p_cold / rho / (gamma[0] - 1.0)
+    def h_from_rho_p(self, rho, p):
+        if (rho < self.rho_transition):
+            p_cold = self.k[0] * rho**self.gamma[0]
+            eps_cold = p_cold / rho / (self.gamma[0] - 1.0)
         else:
-            p_cold = k[1] * rho**gamma[1]
-            eps_cold = p_cold / rho / (gamma[1] - 1.0) - \
-                k[1] * rho_transition**(gamma[1] - 1.0) + \
-                k[0] * rho_transition**(gamma[0] - 1.0)
+            p_cold = self.k[1] * rho**self.gamma[1]
+            eps_cold = p_cold / rho / (self.gamma[1] - 1.0) - \
+                self.k[1] * self.rho_transition**(self.gamma[1] - 1.0) + \
+                self.k[0] * self.rho_transition**(self.gamma[0] - 1.0)
 
         p_th = max(0.0, p - p_cold)
-        eps = p_th / (gamma_th - 1.0) / rho + eps_cold
+        eps = p_th / (self.gamma_th - 1.0) / rho + eps_cold
 
         return 1.0 + eps_cold + eps + p / rho
-
-    def t_from_rho_eps(rho, eps):
-        raise(NotImplementedError, "t_from_rho_eps not implemented yet for polytrope eos")
-
-    eos = {'p_from_rho_eps' : p_from_rho_eps,
-           'h_from_rho_eps' : h_from_rho_eps,
-           'cs_from_rho_eps' : cs_from_rho_eps,
-           'h_from_rho_p' : h_from_rho_p,
-           't_from_rho_eps' : t_from_rho_eps}
-
-    return eos
