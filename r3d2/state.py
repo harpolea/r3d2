@@ -38,14 +38,14 @@ class State(object):
         self.vt = vt
         self.eps = eps
         self.eos = eos
-        if 'q_available' in self.eos:
-            self.q = self.eos['q_available']
+        if hasattr(self.eos, 'q'):
+            self.q = self.eos.q
         else:
             self.q = None
         self.W_lorentz = 1.0 / numpy.sqrt(1.0 - self.v**2 - self.vt**2)
-        self.p = self.eos['p_from_rho_eps'](rho, eps)
-        self.h = self.eos['h_from_rho_eps'](rho, eps)
-        self.cs = self.eos['cs_from_rho_eps'](rho, eps)
+        self.p = self.eos.p_from_rho_eps(rho, eps)
+        self.h = self.eos.h_from_rho_eps(rho, eps)
+        self.cs = self.eos.cs_from_rho_eps(rho, eps)
         self.label = label
 
     def prim(self):
@@ -106,7 +106,7 @@ class State(object):
         vt : scalar
             Tangential velocity :math:`v_t` in the unknown state
         """
-        h = self.eos['h_from_rho_eps'](rho, eps)
+        h = self.eos.h_from_rho_eps(rho, eps)
         vt = self.h * self.W_lorentz * self.vt
         vt *= numpy.sqrt((1.0 - v**2)/
             (h**2 + (self.h * self.W_lorentz * self.vt)**2))

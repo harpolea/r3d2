@@ -9,4 +9,4 @@ __all__ = ["state", "wave", "riemann_problem", "eos_defns"]
 
 from .state import State
 from .riemann_problem import RiemannProblem
-from . import eos_defns
+from .eos_defns import EOS, Gamma_law, Gamma_law_react, Polytrope_law

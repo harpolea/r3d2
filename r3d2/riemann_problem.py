@@ -57,7 +57,7 @@ class RiemannProblem(object):
             find_delta_v(pmax_rootfind)
         except ValueError:
             pmax_rootfind = pmax
-        
+
         self.p_star = brentq(find_delta_v, pmin_rootfind, pmax_rootfind)
         wave_l = Wave(self.state_l, self.p_star, 0)
         wave_r = Wave(self.state_r, self.p_star, 2)
@@ -66,7 +66,7 @@ class RiemannProblem(object):
         self.waves = [wave_l,
                       Wave(self.state_star_l, self.state_star_r, 1), wave_r]
 
-    def _figure_data(self, format):
+    def _figure_data(self, fig_format):
         fig, axs = pyplot.subplots(3,3)
         ax = axs[0,0]
         for w in self.waves[0], self.waves[2]:
@@ -111,7 +111,7 @@ class RiemannProblem(object):
                 axs[ax_i, ax_j].set_xlabel(r"$\xi$")
                 axs[ax_i, ax_j].set_ylabel(names[nvar])
         fig.tight_layout()
-        data = print_figure(fig, format)
+        data = print_figure(fig, fig_format)
         pyplot.close(fig)
         return data
 

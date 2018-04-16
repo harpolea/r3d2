@@ -3,13 +3,22 @@ Equations of state.
 """
 
 import sys
+from abc import ABCMeta#, abstractmethod
 import numpy
-from abc import ABCMeta, abstractmethod
 
 class EOS(metaclass=ABCMeta):
+    """
+    Abstract base class for EOS
+    """
     _fields = []
 
     def __init__(self, *args):
+        """
+        Initialise by setting all the arguments to be the variables listed in the _fields list
+        """
+        if len(args) > len(self._fields):
+            raise TypeError(f'Expected {len(self._fields)} arguments')
+
         for name, value in zip(self._fields, args):
             setattr(self, name, value)
 
@@ -82,7 +91,7 @@ class Polytrope_law(EOS):
     _fields = ['gamma', 'gamma_th', 'rho_transition', 'k']
 
     def p_from_rho_eps(self, rho, eps):
-        if (rho < rho_transition):
+        if (rho < self.rho_transition):
             p_cold = self.k[0] * rho**self.gamma[0]
             eps_cold = p_cold / rho / (self.gamma[0] - 1.)
         else:

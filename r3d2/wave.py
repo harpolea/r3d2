@@ -10,6 +10,7 @@ from scipy.optimize import brentq
 from scipy.integrate import odeint
 from copy import deepcopy
 from .state import State
+from abc import ABCMeta, abstractmethod
 
 
 
@@ -27,7 +28,10 @@ from .state import State
 
 
 
-class WaveSection(object):
+class WaveSection(metaclass=ABCMeta):
+    """
+    Abstract base class for wave sections
+    """
 
     def __init__(self, q_start, p_end, wavenumber):
         """
@@ -97,7 +101,7 @@ class WaveSection(object):
             unknown_eos = q_start.eos
 
         def shock_root_rho(rho):
-            h = unknown_eos['h_from_rho_p'](rho, p_end)
+            h = unknown_eos.h_from_rho_p(rho, p_end)
             return (h**2 - q_start.h**2) - \
             (h/rho + q_start.h/q_start.rho) * (p_end - q_start.p)
 
@@ -124,7 +128,7 @@ class WaveSection(object):
                 shock_root_min = shock_root_rho(min_rho)
                 shock_root_max = shock_root_rho(max_rho)
         rho = brentq(shock_root_rho, min_rho, max_rho)
-        h = unknown_eos['h_from_rho_p'](rho, p_end)
+        h = unknown_eos.h_from_rho_p(rho, p_end)
         eps = h - 1.0 - p_end / rho
         dp = p_end - q_start.p
         dh2 = h**2 - q_start.h**2
@@ -366,8 +370,8 @@ class Deflagration(WaveSection):
         A deflagration.
         """
 
-        eos_end = q_start.eos['eos_inert']
-        t_i = q_start.eos['t_ignition'](q_start.rho, q_start.eps)
+        eos_end = q_start.eos.eos_inert
+        t_i = q_start.eos.t_i_from_rho_eps(q_start.rho, q_start.eps)
 
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Deflagration "\
@@ -439,8 +443,8 @@ class Detonation(WaveSection):
         A detonation.
         """
 
-        eos_end = q_start.eos['eos_inert']
-        t_i = q_start.eos['t_ignition'](q_start.rho, q_start.eps)
+        eos_end = q_start.eos.eos_inert
+        t_i = q_start.eos.t_i_from_rho_eps(q_start.rho, q_start.eps)
 
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Detonation "\
@@ -544,7 +548,7 @@ class Wave(object):
         self.wave_sections = []
         self.wavespeed = []
 
-        if 'q_available' not in q_known.eos:
+        if not hasattr(q_known.eos, 'q'):
             waves = self.build_inert_wave_section(q_known, unknown_value,
                                              wavenumber)
             for sections in waves:
@@ -591,7 +595,8 @@ class Wave(object):
         if self.trivial:
             self.wavespeed = []
 
-    def build_inert_wave_section(self, q_known, unknown_value, wavenumber):
+    @staticmethod
+    def build_inert_wave_section(q_known, unknown_value, wavenumber):
         """
         Object factory for the WaveSection; non-reactive case
         """
@@ -607,9 +612,9 @@ class Wave(object):
     def precursor_root(p_0_star, q_known, wavenumber):
         shock = Shock(q_known, p_0_star, wavenumber)
         q_precursor = shock.q_end
-        t_precursor = q_precursor.eos['t_from_rho_eps'](
+        t_precursor = q_precursor.eos.t_from_rho_eps(
                         q_precursor.rho, q_precursor.eps)
-        t_i = q_precursor.eos['t_ignition'](q_precursor.rho, q_precursor.eps)
+        t_i = q_precursor.eos.t_i_from_rho_eps(q_precursor.rho, q_precursor.eps)
         return t_precursor - t_i
 
     def build_reactive_wave_section(self, q_known, unknown_value, wavenumber):
@@ -617,7 +622,7 @@ class Wave(object):
         Object factory for the WaveSection; reactive case
         """
 
-        t_i = q_known.eos['t_ignition'](q_known.rho, q_known.eps)
+        t_i = q_known.eos.t_i_from_rho_eps(q_known.rho, q_known.eps)
 
         if wavenumber == 1:
             return Contact(q_known, unknown_value, wavenumber)
@@ -633,8 +638,8 @@ class Wave(object):
                     rarefaction = Rarefaction(q_next, unknown_value, wavenumber)
                     wavesections.append(rarefaction)
             else:
-                t_known = q_known.eos['t_from_rho_eps'](q_known.rho, q_known.eps)
-                t_i = q_known.eos['t_ignition'](q_known.rho, q_known.eps)
+                t_known = q_known.eos.t_from_rho_eps(q_known.rho, q_known.eps)
+                t_i = q_known.eos.t_i_from_rho_eps(q_known.rho, q_known.eps)
                 if t_known < t_i: # Need a precursor shock
                     p_min = unknown_value
                     p_max = q_known.p
