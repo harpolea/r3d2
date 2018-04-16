@@ -10,7 +10,7 @@ from abc import ABCMeta#, abstractmethod
 import numpy
 from scipy.optimize import root
 from scipy.integrate import odeint
-from r3d2.wave import Wave
+from r3d2.wave import Wave, WaveSection
 from swe_state import SWEState
 
 
@@ -29,7 +29,7 @@ from swe_state import SWEState
 
 
 
-class WaveSection(metaclass=ABCMeta):
+class SWEWaveSection(WaveSection):
     """
     Abstract base class for wave sections
     """
@@ -73,7 +73,7 @@ class WaveSection(metaclass=ABCMeta):
     def plotting_data(self):
 
         if self.trivial:
-            data = numpy.zeros((0,8))
+            data = numpy.zeros((0,3))
             xi = numpy.zeros((0,))
         else:
             data = numpy.vstack((self.q_start.state(), self.q_end.state()))
@@ -86,7 +86,7 @@ class WaveSection(metaclass=ABCMeta):
 #       WaveSection (q_end rather than p_end). Might be more consistent
 #       to use the same signature for all subclasses - all could
 #       take argument q_end and access variable q_end.p.
-class Contact(WaveSection):
+class SWEContact(SWEWaveSection):
 
     def __init__(self, q_start, q_end, wavenumber):
         """
@@ -110,13 +110,13 @@ class Contact(WaveSection):
 
         assert(numpy.allclose(q_start.v, q_end.v)), "Velocities of states "\
         "must match for a contact"
-        assert(numpy.allclose(q_start.p, q_end.p)), "Pressures of states "\
+        assert(numpy.allclose(q_start.phi, q_end.phi)), "Pressures of states "\
         "must match for a contact"
         assert(numpy.allclose(q_start.wavespeed(wavenumber),
                               q_end.wavespeed(wavenumber))), "Wavespeeds of "\
         "states must match for a contact"
 
-class Rarefaction(WaveSection):
+class SWERarefaction(SWEWaveSection):
 
     def __init__(self, q_start, phi_end, wavenumber):
         """
@@ -126,7 +126,7 @@ class Rarefaction(WaveSection):
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Rarefaction "\
         "must be in 0, 2"
-        assert(q_start.p >= p_end), "For a rarefaction, p_start >= p_end"
+        assert(q_start.phi >= phi_end), "For a rarefaction, phi_start >= phi_end"
         self.type = "Rarefaction"
         self.wavenumber = wavenumber
         self.q_start = deepcopy(q_start)
@@ -150,10 +150,12 @@ class Rarefaction(WaveSection):
             self.name = ""
         else:
             phi_points = numpy.linspace(q_start.phi, phi_end)
-            w_all = odeint(self.raref, q_start.v, phi_points,
-                           rtol=1e-12, atol=1e-10)
-            self.q_end = SWEState(w_all[-1, 0], w_all[-1, 1], label=label)
+            v_star = self.rarefaction_solve(q_start, phi_end, len(phi_points))[-1]
+
+            self.q_end = SWEState(phi_end, v_star, label=label)
             v_unknown = self.q_end.wavespeed(self.wavenumber)
+
+            #print(f'v_unknown = {v_unknown}, v_known = {v_known}')
             if self.wavenumber == 0:
                 self.wavespeed = numpy.array([v_known, v_unknown])
             else:
@@ -163,28 +165,40 @@ class Rarefaction(WaveSection):
     def raref(v, phi):
         return 0.5 * (-v**3 + v + (v**2 - 1) * numpy.sqrt(v**2 + 4 / phi))
 
+    @staticmethod
+    def eval(phi, v):
+        return -0.5 * numpy.sqrt(phi) * (v - 1) * (v + 1) * \
+            numpy.sqrt(phi * v**2 + 4) + 0.5 * v * (phi * v**2 - phi + 2)
+
+    @staticmethod
+    def rarefaction_solve(q, phi_star, n_phi_vals=2):
+        phi, v = q.prim()
+        phi_points = numpy.linspace(phi, phi_star, n_phi_vals)
+        # lam_l = SWERarefaction.eval(phi, v)
+        v_raref = odeint(SWERarefaction.raref, v, phi_points)
+        return v_raref
+
 
     def plotting_data(self):
         # TODO: make the number of points in the rarefaction plot a parameter
         if self.trivial:
             xi = numpy.zeros((0,))
-            data = numpy.zeros((0,8))
+            data = numpy.zeros((0,3))
         else:
-            p = numpy.linspace(self.q_start.p, self.q_end.p, 500)
-            w_all = odeint(self.rarefaction_dwdp,
-                           numpy.array([self.q_start.phi, self.q_start.v, self.q_start.eps]),
-                               p, rtol = 1e-12, atol = 1e-10,
-                               args=(self.q_start, self.wavenumber))
-            data = numpy.zeros((len(p),8))
-            xi = numpy.zeros_like(p)
-            for i in range(len(p)):
-                state = SWEState(w_all[i,0], w_all[i,1])
+            phi_points = numpy.linspace(self.q_start.phi, self.q_end.phi, 500)
+
+            v_points = self.rarefaction_solve(self.q_start, self.q_end.phi, len(phi_points))
+            #self.q_end = SWEState(self.q_end.phi, v_end)
+            data = numpy.zeros((len(phi_points),3))
+            xi = numpy.zeros_like(phi_points)
+            for i in range(len(phi_points)):
+                state = SWEState(phi_points[i], v_points[i])
                 xi[i] = state.wavespeed(self.wavenumber)
                 data[i,:] = state.state()
 
         return xi, data
 
-class Shock(WaveSection):
+class SWEShock(SWEWaveSection):
 
     def __init__(self, q_start, phi_end, wavenumber):
         """
@@ -194,9 +208,7 @@ class Shock(WaveSection):
         self.trivial = False
         assert(wavenumber in [0, 2]), "wavenumber for a Shock "\
         "must be in 0, 2"
-        # As we use the Shock code for deflagration checks, we can't apply
-        # this check
-        #assert(q_start.p <= p_end), "For a shock, p_start <= p_end"
+        assert(q_start.phi <= phi_end), "For a shock, phi_start <= phi_end"
         self.type = "Shock"
         self.wavenumber = wavenumber
         lr_sign = self.wavenumber - 1
@@ -216,38 +228,26 @@ class Shock(WaveSection):
             v_shock = q_start.wavespeed(self.wavenumber)
             self.name = ""
         else:
-            self.q_end = root(self.shock_residual, [q_start.v, v_star], args=(q_start, phi_end))
+            v_shock, v_star = self.analytic_shock(q_start, phi_end)
+            self.q_end = SWEState(phi_end, v_star, label=label)
 
         self.wavespeed = [v_shock]
 
-    @staticmethod
-    def shock_residual(guess, w, phi_end):
-        Vs, v_star = guess
-        phi, v = w
-        W = 1 / numpy.sqrt(1 - v**2)
-        W_star = 1 / numpy.sqrt(1 - v_star**2)
-        q = numpy.array([phi * W, phi * W**2 * v])
-        q_star = numpy.array([phi_end * W_star, phi_end * W_star**2 * v_star])
-        f = numpy.array([phi * W * v, phi * W**2 * v**2 + (phi**2) / 2])
-        f_star = numpy.array([phi_end * W_star * v_star, phi_end * W_star**2 * v_star**2 + (phi_end**2) / 2])
-        residual = Vs * (q - q_star) - (f - f_star)
-        return residual
 
-    # @staticmethod
-    # def phi_residual(phi_star, wl, wr, Vs_hard_guess):
-    #     # Solve across the rarefaction
-    #     v_star_raref = rarefaction(wl, phi_star)[-1]
-    #     # Guess the shock speed
-    #     if Vs_hard_guess is None:
-    #         Vs_guess = 0.9*evals_p_sp(phi_star, v_star_raref)
-    #     else:
-    #         Vs_guess = Vs_hard_guess
-    #     #print('guess', evals_p_sp(phi_star, v_star_raref), evals_p_sp(*wr), Vs_guess)
-    #     shock_result = root(shock_residual, [Vs_guess, v_star_raref], args=(wr, phi_star))
-    #     #print(shock_result)
-    #     v_star_shock = shock_result.x[1]
-    #
-    #     return v_star_raref - v_star_shock
+    @staticmethod
+    def analytic_shock(q, phi_star):
+        phi, v = q.prim()
+        w_bar = numpy.sqrt(1 + phi_star / phi * (phi_star + phi) / 2)
+        v_bar = -numpy.sqrt(1 - 1 / w_bar**2)
+        V_s = (v - v_bar) / (1 - v * v_bar)
+        #print('shock1', w_bar, v_bar, V_s)
+        Wv_star_bar = phi * w_bar * v_bar / phi_star
+        w_star_bar = numpy.sqrt(1 + Wv_star_bar**2)
+        v_star_bar = -numpy.sqrt(1 - 1 / w_star_bar**2)
+        v_star = (v_star_bar + V_s) / (1 + v_star_bar * V_s)
+        return V_s, v_star
+
+
 
 
 class SWEWave(Wave):
@@ -275,7 +275,7 @@ class SWEWave(Wave):
         self.wave_sections = []
         self.wavespeed = []
 
-        waves = self.build_inert_wave_section(q_known, unknown_value,
+        waves = self.build_wave_section(q_known, unknown_value,
                                          wavenumber)
         for sections in waves:
             self.wave_sections.append(sections)
@@ -317,31 +317,23 @@ class SWEWave(Wave):
             self.wavespeed = []
 
     @staticmethod
-    def build_inert_wave_section(q_known, unknown_value, wavenumber):
+    def build_wave_section(q_known, unknown_value, wavenumber):
         """
-        Object factory for the WaveSection; non-reactive case
+        Object factory for the WaveSection
         """
 
         if wavenumber == 1:
-            return [Contact(q_known, unknown_value, wavenumber)]
-        elif q_known.p < unknown_value:
-            return [Shock(q_known, unknown_value, wavenumber)]
+            return [SWEContact(q_known, unknown_value, wavenumber)]
+        elif q_known.phi < unknown_value:
+            return [SWEShock(q_known, unknown_value, wavenumber)]
         else:
-            return [Rarefaction(q_known, unknown_value, wavenumber)]
+            return [SWERarefaction(q_known, unknown_value, wavenumber)]
 
-    @staticmethod
-    def precursor_root(p_0_star, q_known, wavenumber):
-        shock = Shock(q_known, p_0_star, wavenumber)
-        q_precursor = shock.q_end
-        t_precursor = q_precursor.eos.t_from_phi_eps(
-                        q_precursor.phi, q_precursor.eps)
-        t_i = q_precursor.eos.t_i_from_phi_eps(q_precursor.phi, q_precursor.eps)
-        return t_precursor - t_i
 
     def plotting_data(self):
 
         xi_wave = numpy.zeros((0,))
-        data_wave = numpy.zeros((0,8))
+        data_wave = numpy.zeros((0,3))
         for wavesection in self.wave_sections:
             xi_section, data_section = wavesection.plotting_data()
             xi_wave = numpy.hstack((xi_wave, xi_section))

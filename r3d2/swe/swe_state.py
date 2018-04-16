@@ -25,12 +25,6 @@ class SWEState(State):
             Rest mass density :math:`\rho_0`
         v : scalar
             Velocity component in the normal (:math:`x`) direction :math:`v_x`
-        v_t : scalar
-            Velocity component tangential to :math:`x` :math:`v_t`
-        eps : scalar
-            Specific internal energy :math:`\epsilon`
-        eos : dictionary
-            Equation of State
         label : string
             Label for output purposes.
         """
@@ -42,15 +36,15 @@ class SWEState(State):
 
     def prim(self):
         r"""
-        Return the primitive variables :math:`\rho, v`.
+        Return the primitive variables :math:`\Phi, v`.
         """
         return numpy.array([self.phi, self.v])
 
     def state(self):
         r"""
-        Return all variables :math:`\rho, v, W`.
+        Return all variables :math:`\Phi, v, W`.
         """
-        return numpy.array([self.rho, self.v, self.W_lorentz])
+        return numpy.array([self.phi, self.v, self.W_lorentz])
 
     def wavespeed(self, wavenumber):
         """
@@ -79,7 +73,7 @@ class SWEState(State):
         if self.label:
             s += r"_{{{}}} ".format(self.label)
         s += "= "
-        s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f}  \end{{pmatrix}}".format( self.phi, self.v)
+        s += r"\begin{{pmatrix}} {} \\ {} \end{{pmatrix}}".format(self.phi, self.v)
         return s
 
     def _repr_latex_(self):
