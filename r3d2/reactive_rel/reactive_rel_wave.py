@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 15 11:28:53 2016
-
-@author: ih3
-"""
 
 from copy import deepcopy
 import numpy
@@ -11,22 +6,6 @@ from scipy.optimize import brentq
 from scipy.integrate import odeint
 from r3d2.wave import Wave, WaveSection
 from r3d2.reactive_rel.reactive_rel_state import ReactiveRelState
-
-
-
-# NOTE: all subclasses begin with initialising type, name, wavenumber etc.
-#       Can avoid some repeated code by passing these as arguments to
-#       superclass constructer and calling that.
-
-# NOTE: To avoid more repeated code: wave speed calculation appears to
-#       consist of one or two main parts - a shock wave bit and a burning
-#       wave bit. The code for these two sections is almost identical for
-#       all subclasses of WaveSection.
-#       Could therefore make define functions calculate_shock_speed and
-#       calculate_burning_speed for WaveSection class, which are then
-#       called by its subclasses
-
-
 
 class ReactiveRelWaveSection(WaveSection):
     """
@@ -497,7 +476,7 @@ class ReactiveRelWave(Wave):
             characterises direction of travel of wave
         """
 
-        super().__init__(self, q_known, unknown_value, wavenumber)
+        super().__init__(q_known, unknown_value, wavenumber)
 
         if not hasattr(q_known.eos, 'q'):
             waves = self.build_inert_wave_section(q_known, unknown_value,

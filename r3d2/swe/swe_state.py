@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 15 11:26:41 2016
-
-@author: ih3
-"""
 
 import numpy
 from r3d2 import State
