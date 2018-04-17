@@ -1,4 +1,4 @@
-from r3d2 import eos_defns, State, RiemannProblem
+from r3d2 import Gamma_law, Gamma_law_react, ReactiveRelFactory
 from numpy.testing import assert_allclose
 
 def test_standard_sod():
@@ -7,10 +7,11 @@ def test_standard_sod():
 
     Numbers are taken from the General Matlab code, so accuracy isn't perfect.
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    w_left = State(1.0, 0.0, 0.0, 1.5, eos, label="L")
-    w_right = State(0.125, 0.0, 0.0, 1.2, eos, label="R")
-    rp = RiemannProblem(w_left, w_right)
+    eos = Gamma_law(5.0/3.0)
+    f = ReactiveRelFactory()
+    w_left = f.state(1.0, 0.0, 0.0, 1.5, eos, label="L")
+    w_right = f.state(0.125, 0.0, 0.0, 1.2, eos, label="R")
+    rp = f.riemann_problem(w_left, w_right)
     p_star_matlab = 0.308909954203586
     assert_allclose(rp.p_star, p_star_matlab, rtol=1e-6)
     rarefaction_speeds_matlab = [-0.690065559342354, -0.277995552140227]
@@ -27,10 +28,11 @@ def test_bench_1():
 
     Uses Matlab code to test, so extreme accuracy given.
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    w_left = State(10.0, 0.0, 0.0, 2.0, eos, label="L")
-    w_right = State(1.0, 0.0, 0.0, 1.5e-6, eos, label="R")
-    rp = RiemannProblem(w_left, w_right)
+    eos = Gamma_law(5.0/3.0)
+    f = ReactiveRelFactory()
+    w_left = f.state(10.0, 0.0, 0.0, 2.0, eos, label="L")
+    w_right = f.state(1.0, 0.0, 0.0, 1.5e-6, eos, label="R")
+    rp = f.riemann_problem(w_left, w_right)
     v_shock_ref = 0.828398034190528
     v_contact_ref = 0.714020700932637
     v_raref_ref = [-0.716114874039433, 0.167236293932105]
@@ -53,10 +55,11 @@ def test_bench_2():
 
     Uses Matlab code to test, so extreme accuracy given.
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    w_left = State(1.0, 0.0, 0.0, 1500.0, eos, label="L")
-    w_right = State(1.0, 0.0, 0.0, 1.5e-2, eos, label="R")
-    rp = RiemannProblem(w_left, w_right)
+    eos = Gamma_law(5.0/3.0)
+    f = ReactiveRelFactory()
+    w_left = f.state(1.0, 0.0, 0.0, 1500.0, eos, label="L")
+    w_right = f.state(1.0, 0.0, 0.0, 1.5e-2, eos, label="R")
+    rp = f.riemann_problem(w_left, w_right)
     v_shock_ref = 0.986804253648698
     v_contact_ref = 0.960409611243646
     v_raref_ref = [-0.816333330585011, 0.668125119704241]
@@ -79,10 +82,11 @@ def test_bench_3():
     http://computastrophys.livingreviews.org/Articles/lrca-2015-3
 
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    w_left = State(1.0, 0.0, 0.0, 1500, eos, label="L")
-    w_right = State(1.0, 0.0, 0.99, 0.015, eos, label="R")
-    rp = RiemannProblem(w_left, w_right)
+    eos = Gamma_law(5.0/3.0)
+    f = ReactiveRelFactory()
+    w_left = f.state(1.0, 0.0, 0.0, 1500, eos, label="L")
+    w_right = f.state(1.0, 0.0, 0.99, 0.015, eos, label="R")
+    rp = f.riemann_problem(w_left, w_right)
     v_shock_ref = 0.927006
     v_contact_ref = 0.766706
     assert_allclose(rp.waves[2].wavespeed, v_shock_ref, rtol=1e-5)
@@ -98,10 +102,11 @@ def test_bench_4():
     Left and right states have been flipped so it complements the above
     Sod test.
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    w_left = State(1.0, 0.0, 0.9, 0.015, eos, label="L")
-    w_right = State(1.0, 0.0, 0.9, 1500, eos, label="R")
-    rp = RiemannProblem(w_left, w_right)
+    eos = Gamma_law(5.0/3.0)
+    f = ReactiveRelFactory()
+    w_left = f.state(1.0, 0.0, 0.9, 0.015, eos, label="L")
+    w_right = f.state(1.0, 0.0, 0.9, 1500, eos, label="R")
+    rp = f.riemann_problem(w_left, w_right)
     v_shock_ref = -0.445008
     v_contact_ref = -0.319371
     p_star_ref = 0.90379102665871947
@@ -115,11 +120,12 @@ def test_multi_gamma():
 
     This is essentially the strong test (Figure 3) of Millmore and Hawke
     """
-    eos1 = eos_defns.eos_gamma_law(1.4)
-    eos2 = eos_defns.eos_gamma_law(1.67)
-    w_left = State(10.2384, 0.9411, 0.0, 50.0/0.4/10.23841, eos1, label="L")
-    w_right = State(0.1379, 0.0, 0.0, 1.0/0.1379/0.67, eos2, label="R")
-    rp = RiemannProblem(w_left, w_right)
+    eos1 = Gamma_law(1.4)
+    eos2 = Gamma_law(1.67)
+    f = ReactiveRelFactory()
+    w_left = f.state(10.2384, 0.9411, 0.0, 50.0/0.4/10.23841, eos1, label="L")
+    w_right = f.state(0.1379, 0.0, 0.0, 1.0/0.1379/0.67, eos2, label="R")
+    rp = f.riemann_problem(w_left, w_right)
     v_shock_ref = 0.989670551306888
     v_contact_ref = 0.949361020941429
     v_raref_ref = [0.774348025484414, 0.804130593636139]
@@ -137,12 +143,13 @@ def test_detonation_wave():
     """
     A single detonation wave
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
-    U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
-    U_burnt = State(8.113665227084942, -0.34940431910454606, 0.0,
+    eos = Gamma_law(5.0/3.0)
+    eos_reactive = Gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
+    f = ReactiveRelFactory()
+    U_reactive = f.state(5.0, 0.0, 0.0, 2.0, eos_reactive)
+    U_burnt = f.state(8.113665227084942, -0.34940431910454606, 0.0,
                     2.7730993786742353, eos)
-    rp = RiemannProblem(U_reactive, U_burnt)
+    rp = f.riemann_problem(U_reactive, U_burnt)
     assert(rp.waves[2].wave_sections[0].trivial)
     assert_allclose(rp.waves[0].wavespeed, -0.82680400067536064)
 
@@ -150,12 +157,13 @@ def test_cj_detonation_wave():
     """
     A single CJ detonation wave
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
-    U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
-    U_burnt = State(5.1558523350586452, -0.031145176327346744, 0.0,
+    eos = Gamma_law(5.0/3.0)
+    eos_reactive = Gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
+    f = ReactiveRelFactory()
+    U_reactive = f.state(5.0, 0.0, 0.0, 2.0, eos_reactive)
+    U_burnt = f.state(5.1558523350586452, -0.031145176327346744, 0.0,
                     2.0365206985013153, eos)
-    rp = RiemannProblem(U_reactive, U_burnt)
+    rp = f.riemann_problem(U_reactive, U_burnt)
     assert(rp.waves[0].wave_sections[0].name == r"{\cal CJDT}_{\leftarrow}")
     assert(rp.waves[0].wave_sections[1].name == r"{\cal R}_{\leftarrow}")
     assert(rp.waves[2].wave_sections[0].trivial)
@@ -166,12 +174,13 @@ def test_deflagration_wave():
     """
     A single deflagration wave
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
-    U_reactive = State(5.0, 0.0, 0.0, 2.0, eos_reactive)
-    U_burnt = State(0.10089486779791534, 0.97346270073482888, 0.0,
+    eos = Gamma_law(5.0/3.0)
+    eos_reactive = Gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
+    f = ReactiveRelFactory()
+    U_reactive = f.state(5.0, 0.0, 0.0, 2.0, eos_reactive)
+    U_burnt = f.state(0.10089486779791534, 0.97346270073482888, 0.0,
                     0.14866950243842186, eos)
-    rp = RiemannProblem(U_reactive, U_burnt)
+    rp = f.riemann_problem(U_reactive, U_burnt)
     assert(rp.waves[2].wave_sections[0].trivial)
     wavespeed_deflagration = [-0.60970641412658788, 0.94395720523915128]
     assert_allclose(rp.waves[0].wavespeed, wavespeed_deflagration)
@@ -180,12 +189,13 @@ def test_precursor_deflagration_wave():
     """
     A single deflagration wave with precursor shock
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    eos_reactive = eos_defns.eos_gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
-    U_reactive = State(0.5, 0.0, 0.0, 1.0, eos_reactive)
-    U_burnt = State(0.24316548798524526, 0.39922932397353039, 0.0,
+    eos = Gamma_law(5.0/3.0)
+    eos_reactive = Gamma_law_react(5.0/3.0, 0.1, 1.0, 1.0, eos)
+    f = ReactiveRelFactory()
+    U_reactive = f.state(0.5, 0.0, 0.0, 1.0, eos_reactive)
+    U_burnt = f.state(0.24316548798524526, 0.39922932397353039, 0.0,
                     0.61686385086179807, eos)
-    rp = RiemannProblem(U_reactive, U_burnt)
+    rp = f.riemann_problem(U_reactive, U_burnt)
     assert(rp.waves[0].wave_sections[0].name == r"{\cal S}_{\leftarrow}")
     assert(rp.waves[0].wave_sections[1].name == r"{\cal CJDF}_{\leftarrow}")
     assert(rp.waves[0].wave_sections[2].name == r"{\cal R}_{\leftarrow}")
@@ -197,9 +207,10 @@ def test_trivial():
     """
     A trivial Riemann Problem
     """
-    eos = eos_defns.eos_gamma_law(5.0/3.0)
-    U = State(1.0, 0.0, 0.0, 1.0, eos)
-    rp = RiemannProblem(U, U)
+    eos = Gamma_law(5.0/3.0)
+    f = ReactiveRelFactory()
+    U = f.state(1.0, 0.0, 0.0, 1.0, eos)
+    rp = f.riemann_problem(U, U)
     for wave in rp.waves:
         assert(wave.wave_sections[0].trivial)
         assert(wave.name == "")

@@ -5,8 +5,9 @@ from matplotlib import pyplot
 import matplotlib.transforms as mtrans
 from IPython.core.pylabtools import print_figure
 
-from r3d2 import RiemannProblem, utils
+from r3d2 import RiemannProblem
 from r3d2.reactive_rel.reactive_rel_wave import ReactiveRelWave, ReactiveRelWaveSection
+from r3d2.reactive_rel import utils
 
 
 class ReactiveRelRiemannProblem(RiemannProblem):
