@@ -361,11 +361,15 @@ class Wave(object):
         self.wave_sections = []
         self.wavespeed = []
 
+        # initialise
+        self.q_l = deepcopy(q_known)
+        self.q_r = deepcopy(q_known)
+
 
     def plotting_data(self):
 
         xi_wave = numpy.zeros((0,))
-        data_wave = numpy.zeros((0,len(len(self.q_l.state()))))
+        data_wave = numpy.zeros((0,len(self.q_l.state())))
         for wavesection in self.wave_sections:
             xi_section, data_section = wavesection.plotting_data()
             xi_wave = numpy.hstack((xi_wave, xi_section))

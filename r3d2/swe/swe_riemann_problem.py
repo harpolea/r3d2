@@ -14,7 +14,7 @@ from r3d2 import RiemannProblem
 from swe_wave import SWEWave, SWEShock, SWERarefaction
 
 
-class ShallowWaterRiemannProblem(RiemannProblem):
+class SWERiemannProblem(RiemannProblem):
     """
     This is a more general Riemann Problem class.
 

@@ -229,7 +229,7 @@ class SWEWave(Wave):
             characterises direction of travel of wave
         """
 
-        super().__init__(self, q_known, unknown_value, wavenumber)
+        super().__init__(q_known, unknown_value, wavenumber)
 
         waves = self.build_wave_section(q_known, unknown_value,
                                          wavenumber)
