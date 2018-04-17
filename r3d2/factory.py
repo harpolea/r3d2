@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
-from .reactive_rel import reactive_rel_wave, reactive_rel_riemann_problem, reactive_rel_state
-from .swe import swe_wave, swe_state, swe_riemann_problem
+from r3d2.reactive_rel import reactive_rel_wave, reactive_rel_riemann_problem, reactive_rel_state
+from r3d2.swe import swe_wave, swe_state, swe_riemann_problem
 
 
 class AbstractFactory(metaclass=ABCMeta):

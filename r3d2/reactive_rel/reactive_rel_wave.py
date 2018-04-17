@@ -10,7 +10,7 @@ import numpy
 from scipy.optimize import brentq
 from scipy.integrate import odeint
 from r3d2.wave import Wave, WaveSection
-from reactive_rel_state import ReactiveRelState
+from r3d2.reactive_rel.reactive_rel_state import ReactiveRelState
 
 
 

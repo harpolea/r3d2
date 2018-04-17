@@ -11,7 +11,7 @@ import matplotlib.transforms as mtrans
 from IPython.core.pylabtools import print_figure
 
 from r3d2 import RiemannProblem, utils
-from reactive_rel_wave import ReactiveRelWave, ReactiveRelWaveSection
+from r3d2.reactive_rel.reactive_rel_wave import ReactiveRelWave, ReactiveRelWaveSection
 
 
 class ReactiveRelRiemannProblem(RiemannProblem):

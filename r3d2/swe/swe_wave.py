@@ -11,7 +11,7 @@ import numpy
 from scipy.optimize import root
 from scipy.integrate import odeint
 from r3d2.wave import Wave, WaveSection
-from swe_state import SWEState
+from r3d2.swe.swe_state import SWEState
 
 
 

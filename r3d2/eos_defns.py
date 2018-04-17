@@ -18,7 +18,7 @@ class EOS(metaclass=ABCMeta):
         listed in the _fields list
         """
         if len(args) > len(self._fields):
-            raise TypeError(f'Expected {len(self._fields)} arguments')
+            raise TypeError()#f'Expected {len(self._fields)} arguments')
 
         for name, value in zip(self._fields, args):
             setattr(self, name, value)

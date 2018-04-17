@@ -11,7 +11,7 @@ from IPython.core.pylabtools import print_figure
 from scipy.optimize import brentq, root
 
 from r3d2 import RiemannProblem
-from swe_wave import SWEWave, SWEShock, SWERarefaction
+from r3d2.swe.swe_wave import SWEWave, SWEShock, SWERarefaction
 
 
 class SWERiemannProblem(RiemannProblem):
