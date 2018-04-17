@@ -13,17 +13,11 @@ class SWEWaveSection(WaveSection):
     Currently this just inherits everything from WaveSection.
     """
 
-
-
-# NOTE: this class has a different signature to all other subclasses of
-#       WaveSection (q_end rather than p_end). Might be more consistent
-#       to use the same signature for all subclasses - all could
-#       take argument q_end and access variable q_end.p.
 class SWEContact(SWEWaveSection):
 
     def __init__(self, q_start, q_end, wavenumber):
         """
-        A contact.
+        A contact wave.
         """
 
         self.trivial = False
@@ -100,11 +94,17 @@ class SWERarefaction(SWEWaveSection):
 
     @staticmethod
     def eval(phi, v):
+        """
+        Eigenvalue
+        """
         return 0.5 * numpy.sqrt(phi) * (v - 1) * (v + 1) * \
             numpy.sqrt(phi * v**2 + 4) + 0.5 * v * (phi * v**2 - phi + 2)
 
     @staticmethod
     def rarefaction_solve(q, phi_star, n_phi_vals=2):
+        """
+        Solve across the rarefaction wave
+        """
         phi, v = q.prim()
         phi_points = numpy.linspace(phi, phi_star, n_phi_vals)
         # lam_l = SWERarefaction.eval(phi, v)
@@ -116,6 +116,8 @@ class SWERarefaction(SWEWaveSection):
         """
         Parameters
         ----------
+        t_end: float
+            end time
         n_points: integer
             number of points in the rarefaction plot
         """
@@ -141,6 +143,15 @@ class SWEShock(SWEWaveSection):
     def __init__(self, q_start, phi_end, wavenumber):
         """
         A shock.
+
+        Parameters
+        ----------
+        q_start : SWEState
+            known state
+        phi_end : float
+            phi in star region
+        wavenumber : int
+            direction of wave
         """
 
         self.trivial = False
@@ -174,6 +185,16 @@ class SWEShock(SWEWaveSection):
 
     @staticmethod
     def analytic_shock(q, phi_star):
+        """
+        Analytic solution for shock
+
+        Parameters
+        ----------
+        q : SWEState
+            known state
+        phi_star : float
+            phi in star region
+        """
         phi, v = q.prim()
         w_bar = numpy.sqrt(1 + phi_star / phi * (phi_star + phi) / 2)
         v_bar = -numpy.sqrt(1 - 1 / w_bar**2)
@@ -210,7 +231,7 @@ class SWEWave(Wave):
         super().__init__(q_known, unknown_value, wavenumber)
 
         waves = self.build_wave_section(q_known, unknown_value,
-                                         wavenumber)
+                                        wavenumber)
         for sections in waves:
             self.wave_sections.append(sections)
 

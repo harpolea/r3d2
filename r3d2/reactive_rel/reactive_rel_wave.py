@@ -24,7 +24,7 @@ class ReactiveRelWaveSection(WaveSection):
             State at start of the region
         p_end : scalar
             Pressure at the end of the region
-        unknown_eos : dictionary, optional
+        unknown_eos : EOS, optional
             Equation of state in the region (provided if different from EoS
             of q_start)
         """
@@ -232,7 +232,7 @@ class Rarefaction(ReactiveRelWaveSection):
         dwdp[2] = local_state.p / (rho**2 * h * cs**2)
         return dwdp
 
-    def plotting_data(self):
+    def plotting_data(self, t_end):
         # TODO: make the number of points in the rarefaction plot a parameter
         if self.trivial:
             xi = numpy.zeros((0,))

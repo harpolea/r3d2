@@ -1,4 +1,4 @@
-from r3d2 import Gamma_law, Gamma_law_react, ReactiveRelFactory
+from r3d2 import Gamma_law, Gamma_law_react, ReactiveRelFactory, SWEFactory
 from numpy.testing import assert_allclose
 
 def test_standard_sod():
@@ -203,6 +203,35 @@ def test_precursor_deflagration_wave():
     wavespeed_deflagration = [-0.65807776007359042, -0.23714630045322399]
     assert_allclose(rp.waves[0].wavespeed, wavespeed_deflagration)
 
+def test_swe():
+    """
+    Test shallow water problem.
+    """
+    f = SWEFactory()
+    Ul = f.state(0.41, 0)
+    Ur = f.state(0.01, 0)
+    rp = f.riemann_problem(Ul, Ur, t_end=0.3)
+    assert(rp.waves[0].wave_sections[0].name == r"{\cal R}_{\leftarrow}")
+    assert(rp.waves[1].wave_sections[0].trivial)
+    assert(rp.waves[2].wave_sections[0].name == r"{\cal S}_{\rightarrow}")
+    wavespeeds = [-0.6403124237432849, 0.5943695015574617]
+    assert_allclose([rp.waves[0].wavespeed[0], rp.waves[2].wavespeed[0]], wavespeeds)
+
+def test_swe_extreme():
+    """
+    Test shallow water problem.
+    """
+    f = SWEFactory()
+    Ul = f.state(0.9999, 0)
+    Ur = f.state(0.00001, 0)
+    rp = f.riemann_problem(Ul, Ur, t_end=0.4)
+    assert(rp.waves[0].wave_sections[0].name == r"{\cal R}_{\leftarrow}")
+    assert(rp.waves[1].wave_sections[0].trivial)
+    assert(rp.waves[2].wave_sections[0].name == r"{\cal S}_{\rightarrow}")
+    wavespeeds = [-0.9999499987499375, 0.9190022758576769]
+    assert_allclose([rp.waves[0].wavespeed[0], rp.waves[2].wavespeed[0]], wavespeeds)
+
+
 def test_trivial():
     """
     A trivial Riemann Problem
@@ -210,6 +239,17 @@ def test_trivial():
     eos = Gamma_law(5.0/3.0)
     f = ReactiveRelFactory()
     U = f.state(1.0, 0.0, 0.0, 1.0, eos)
+    rp = f.riemann_problem(U, U)
+    for wave in rp.waves:
+        assert(wave.wave_sections[0].trivial)
+        assert(wave.name == "")
+
+def test_trivial_swe():
+    """
+    A trivial SWE Riemann Problem
+    """
+    f = SWEFactory()
+    U = f.state(1.0, 0.0)
     rp = f.riemann_problem(U, U)
     for wave in rp.waves:
         assert(wave.wave_sections[0].trivial)

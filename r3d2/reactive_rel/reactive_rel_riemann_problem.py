@@ -35,21 +35,21 @@ class ReactiveRelRiemannProblem(RiemannProblem):
                       wave_r]
 
     def _figure_data(self, fig_format):
-        fig, axs = pyplot.subplots(3,3)
+        fig, axs = pyplot.subplots(3,3, figsize=(8,7))
         ax = axs[0,0]
         for w in self.waves[0], self.waves[2]:
             if len(w.wavespeed)==1:
-                ax.plot([0, w.wavespeed[0]], [0, 1], 'k-', linewidth=3)
+                ax.plot([0, w.wavespeed[0]], [0, self.t_end], 'k-', linewidth=3)
             elif len(w.wavespeed)==2:
                 xi_end = numpy.linspace(w.wavespeed[0], w.wavespeed[1], 5)
                 ax.fill_between([0, xi_end[0], xi_end[-1], 0],
-                                [0, 1, 1, 0], color='k', alpha=0.1)
+                                [0, self.t_end, self.t_end, 0], color='k', alpha=0.1)
                 for xi in xi_end:
-                    ax.plot([0, xi], [0, 1], 'k-', linewidth=1)
+                    ax.plot([0, xi], [0, self.t_end], 'k-', linewidth=1)
         if len(self.waves[1].wavespeed):
-            ax.plot([0, self.waves[1].wavespeed[0]], [0, 1], 'k--', linewidth=1)
+            ax.plot([0, self.waves[1].wavespeed[0]], [0, self.t_end], 'k--', linewidth=1)
         ax.set_xlim(-1, 1)
-        ax.set_ylim(0, 1)
+        ax.set_ylim(0, self.t_end)
         ax.set_xlabel(r"$x$")
         ax.set_ylabel(r"$t$")
         ax.set_title("Characteristics")
@@ -58,7 +58,7 @@ class ReactiveRelRiemannProblem(RiemannProblem):
         xi = [-1.05]
         data = self.state_l.state()
         for wave in self.waves:
-            xi_wave, data_wave = wave.plotting_data()
+            xi_wave, data_wave = wave.plotting_data(self.t_end)
             xi = numpy.hstack((xi, xi_wave))
             data = numpy.vstack((data, data_wave))
         xi = numpy.hstack((xi, [1.05]))
@@ -104,17 +104,17 @@ class ReactiveRelRiemannProblem(RiemannProblem):
         s += r". \end{cases}$"
         return s
 
-    def plot_P_v(self, ax, fig, var_to_plot = "velocity"):
+    def plot_P_v(self, ax, fig, var_to_plot="velocity"):
         """
         Plot the curves joining states within phase space for the Riemann Problem.
 
         Parameters
         ----------
 
-        rp : RiemannProblem
-            The Riemann Problem to be plotted
         ax : matplotlib axis
             The axis on which to plot
+        fig : matplotlib figure
+            figure on which to plot
         var_to_plot : string
             The name of the variable to plot on the y axis
         """

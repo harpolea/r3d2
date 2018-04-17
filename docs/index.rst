@@ -15,6 +15,7 @@ Contents:
    states
    waves
    riemann_problem
+   swe_riemann_problem
    tangential_change
 
 Indices and tables

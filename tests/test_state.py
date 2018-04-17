@@ -1,4 +1,4 @@
-from r3d2 import Gamma_law, Gamma_law_react, ReactiveRelFactory
+from r3d2 import Gamma_law, Gamma_law_react, ReactiveRelFactory, SWEFactory
 from numpy.testing import assert_allclose
 from numpy import sqrt
 from nose.tools import assert_raises
@@ -33,4 +33,14 @@ def test_reactive_state():
     U = f.state(1.0, 0.0, 0.0, 1.5, eos_reactive, label="Test")
     string = r"\begin{pmatrix} \rho \\ v_x \\ v_t \\ \epsilon \\ q \end{pmatrix}_{Test}"
     string += r" = \begin{pmatrix} 1.0000 \\ 0.0000 \\ 0.0000 \\ 1.5000 \\ 1.0000 \end{pmatrix}"
+    assert U.latex_string() == string
+
+def test_swe_state():
+    """
+    SWEState
+    """
+    f = SWEFactory()
+    U = f.state(0.5, 0, label="Test")
+    string = r"\begin{pmatrix} \Phi \\ v \end{pmatrix}_{Test}"
+    string += r" = \begin{pmatrix} 0.5000 \\ 0.0000 \end{pmatrix}"
     assert U.latex_string() == string

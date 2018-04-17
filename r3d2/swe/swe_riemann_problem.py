@@ -3,7 +3,7 @@
 import numpy
 from matplotlib import pyplot
 from IPython.core.pylabtools import print_figure
-from scipy.optimize import brentq, root
+from scipy.optimize import brentq
 
 from r3d2 import RiemannProblem
 from r3d2.swe.swe_wave import SWEWave, SWEShock, SWERarefaction
@@ -63,7 +63,6 @@ class SWERiemannProblem(RiemannProblem):
         self.waves = [wave_l,
                       SWEWave(self.state_star_l, self.state_star_r, 1), wave_r]
 
-
     def _repr_latex_(self):
         s = r"$\begin{cases} "
         s += self.state_l.latex_string()
@@ -71,7 +70,7 @@ class SWERiemannProblem(RiemannProblem):
         s += self.state_r.latex_string()
         s += r", \end{cases} \quad \implies \quad "
         for wave in self.waves:
-            s+= wave.name
+            s += wave.name
         s += r", \quad \Phi_* = {:.4f}, \quad".format(self.phi_star)
         s += r"\begin{cases} "
         for wave in self.waves[:-1]:
@@ -85,26 +84,26 @@ class SWERiemannProblem(RiemannProblem):
         return s
 
     def _figure_data(self, fig_format):
-        fig, axs = pyplot.subplots(3,1)
+        fig, axs = pyplot.subplots(3,1, figsize=(6,8))
         ax = axs[0]
         for w in self.waves[0], self.waves[2]:
             if len(w.wavespeed)==1:
-                ax.plot([0, w.wavespeed[0] * self.t_end], [0, 1], 'k-', linewidth=3)
+                ax.plot([0, w.wavespeed[0] * self.t_end], [0, self.t_end], 'k-', linewidth=3)
             elif len(w.wavespeed)==2:
                 xi_end = numpy.linspace(w.wavespeed[0], w.wavespeed[1], 5) * self.t_end
                 ax.fill_between([0, xi_end[0], xi_end[-1], 0],
-                                [0, 1, 1, 0], color='k', alpha=0.1)
+                                [0, self.t_end, self.t_end, 0], color='k', alpha=0.1)
                 for xi in xi_end:
-                    ax.plot([0, xi], [0, 1], 'k-', linewidth=1)
+                    ax.plot([0, xi], [0, self.t_end], 'k-', linewidth=1)
         if len(self.waves[1].wavespeed):
             ax.plot([0, self.waves[1].wavespeed[0] * self.t_end], [0, 1], 'k--', linewidth=1)
         ax.set_xlim(-0.5, 0.5)
-        ax.set_ylim(0, 1)
+        ax.set_ylim(0, self.t_end)
         ax.set_xlabel(r"$x$")
         ax.set_ylabel(r"$t$")
         ax.set_title("Characteristics")
         names = [r"$\Phi$", r"$v$"]
-        xi = [-0.45]
+        xi = [-0.55]
         data = self.state_l.state()
         for wave in self.waves:
             xi_wave, data_wave = wave.plotting_data(self.t_end)
@@ -123,7 +122,7 @@ class SWERiemannProblem(RiemannProblem):
                         0.01 * min(abs(var_min), abs(var_max)), 0.01)
             axs[ax_i].set_xlim(xi[0], xi[-1])
             axs[ax_i].set_ylim(var_min - 0.05 * d_var,
-                                    var_max + 0.05 * d_var)
+                               var_max + 0.05 * d_var)
             axs[ax_i].set_xlabel(r"$\xi$")
             axs[ax_i].set_ylabel(names[nvar])
         fig.tight_layout()
