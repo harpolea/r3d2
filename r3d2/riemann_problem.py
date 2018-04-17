@@ -12,13 +12,10 @@ from scipy.optimize import brentq
 
 class RiemannProblem(metaclass=ABCMeta):
     """
-    This is a more general Riemann Problem class.
-
-    Allows for different EOSs on both sides (as required for burning problems).
-    Uses the State class.
+    Abstract base Riemann Problem class.
     """
 
-    def __init__(self, state_l, state_r):
+    def __init__(self, state_l, state_r, t_end=1.0):
         """
         Constructor
         """
@@ -29,6 +26,8 @@ class RiemannProblem(metaclass=ABCMeta):
 
         self.state_l = state_l
         self.state_r = state_r
+
+        self.t_end = t_end
 
         pmin = min(self.state_l.p, self.state_r.p)
         pmax = max(self.state_l.p, self.state_r.p)
@@ -58,7 +57,7 @@ class RiemannProblem(metaclass=ABCMeta):
         self.make_waves()
 
     @abstractmethod
-    def find_delta_v(self, p_star_guess):
+    def find_delta_v(self, p_star):
         pass
 
     @abstractmethod
@@ -126,4 +125,7 @@ class RiemannProblem(metaclass=ABCMeta):
 
     @abstractmethod
     def _repr_latex_(self):
+        """
+        Force concrete implementation of latex representation of object.
+        """
         pass

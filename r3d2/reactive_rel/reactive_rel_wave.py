@@ -4,7 +4,7 @@ from copy import deepcopy
 import numpy
 from scipy.optimize import brentq
 from scipy.integrate import odeint
-from r3d2.wave import Wave, WaveSection
+from r3d2 import Wave, WaveSection
 from r3d2.reactive_rel.reactive_rel_state import ReactiveRelState
 
 class ReactiveRelWaveSection(WaveSection):
@@ -71,7 +71,7 @@ class ReactiveRelWaveSection(WaveSection):
     @staticmethod
     def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
         lr_sign = wavenumber - 1
-        j2, rho, eps, dp = WaveSection.mass_flux_squared(q_precursor, p_0_star, unknown_eos)
+        j2, rho, eps, dp = ReactiveRelWaveSection.mass_flux_squared(q_precursor, p_0_star, unknown_eos)
         if j2 < 0:
             return 10.0 # Unphysical part of Crussard curve, return a random number
         j = numpy.sqrt(j2)

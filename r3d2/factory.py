@@ -31,8 +31,8 @@ class ReactiveRelFactory(AbstractFactory):
     Create concrete reactive relativistic Riemann problem objects
     """
 
-    def riemann_problem(self, state_l, state_r):
-        return reactive_rel_riemann_problem.ReactiveRelRiemannProblem(state_l, state_r)
+    def riemann_problem(self, state_l, state_r, t_end=1.0):
+        return reactive_rel_riemann_problem.ReactiveRelRiemannProblem(state_l, state_r, t_end)
 
     def state(self, rho, v, vt, eps, eos, label=None):
         return reactive_rel_state.ReactiveRelState(rho, v, vt, eps, eos, label)
@@ -46,11 +46,11 @@ class ReactiveRelFactory(AbstractFactory):
 
 class SWEFactory(AbstractFactory):
     """
-    Create concrete reactive relativistic Riemann problem objects
+    Create concrete shallow water Riemann problem objects
     """
 
-    def riemann_problem(self, state_l, state_r):
-        return swe_riemann_problem.SWERiemannProblem(state_l, state_r)
+    def riemann_problem(self, state_l, state_r, t_end=1.0):
+        return swe_riemann_problem.SWERiemannProblem(state_l, state_r, t_end)
 
     def state(self, phi, v, label=None):
         return swe_state.SWEState(phi, v, label)

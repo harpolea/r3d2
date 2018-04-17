@@ -55,8 +55,8 @@ class SWEState(State):
         if wavenumber == 1:
             return self.v
         elif abs(wavenumber - 1) == 1:
-            return 0.5 * (-self.v**3 + self.v + (self.v**2 - 1) *
-                          numpy.sqrt(self.v**2 + 4 / self.phi))
+            return 0.5 * numpy.sqrt(self.phi) * (self.v - 1) * (self.v + 1) * \
+                numpy.sqrt(self.phi * self.v**2 + 4) + 0.5 * self.v * (self.phi * self.v**2 - self.phi + 2)
         else:
             raise NotImplementedError("wavenumber must be 0, 1, 2")
 

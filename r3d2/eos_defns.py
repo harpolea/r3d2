@@ -18,7 +18,7 @@ class EOS(metaclass=ABCMeta):
         listed in the _fields list
         """
         if len(args) > len(self._fields):
-            raise TypeError()#f'Expected {len(self._fields)} arguments')
+            raise TypeError(r'Expected {} arguments'.format(len(self._fields)))
 
         for name, value in zip(self._fields, args):
             setattr(self, name, value)
@@ -148,7 +148,7 @@ class Polytrope_law(EOS):
             p_cold = self.k[0] * rho**self.gamma[0]
             eps_cold = p_cold / rho / (self.gamma[0] - 1.0)
         else:
-            p_cold = k[1] * rho**self.gamma[1]
+            p_cold = self.k[1] * rho**self.gamma[1]
             eps_cold = p_cold / rho / (self.gamma[1] - 1.0) - \
                 self.k[1] * self.rho_transition**(self.gamma[1] - 1.0) + \
                 self.k[0] * self.rho_transition**(self.gamma[0] - 1.0)

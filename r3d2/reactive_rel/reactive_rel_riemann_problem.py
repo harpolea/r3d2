@@ -18,10 +18,10 @@ class ReactiveRelRiemannProblem(RiemannProblem):
     Uses the State class.
     """
 
-    def find_delta_v(self, p_star_guess):
+    def find_delta_v(self, p_star):
 
-        wave_l = ReactiveRelWave(self.state_l, p_star_guess, 0)
-        wave_r = ReactiveRelWave(self.state_r, p_star_guess, 2)
+        wave_l = ReactiveRelWave(self.state_l, p_star, 0)
+        wave_r = ReactiveRelWave(self.state_r, p_star, 2)
 
         return wave_l.q_r.v - wave_r.q_l.v
 

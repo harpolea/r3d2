@@ -3,13 +3,14 @@
 from copy import deepcopy
 import numpy
 from scipy.integrate import odeint
-from r3d2.wave import Wave, WaveSection
+from r3d2 import Wave, WaveSection
 from r3d2.swe.swe_state import SWEState
 
 
 class SWEWaveSection(WaveSection):
     """
-    Class for wave sections
+    Class for wave sections.
+    Currently this just inherits everything from WaveSection.
     """
 
 
@@ -42,7 +43,7 @@ class SWEContact(SWEWaveSection):
 
         assert(numpy.allclose(q_start.v, q_end.v)), "Velocities of states "\
         "must match for a contact"
-        assert(numpy.allclose(q_start.phi, q_end.phi)), "Pressures of states "\
+        assert(numpy.allclose(q_start.phi, q_end.phi)), "Phis of states "\
         "must match for a contact"
         assert(numpy.allclose(q_start.wavespeed(wavenumber),
                               q_end.wavespeed(wavenumber))), "Wavespeeds of "\
@@ -99,7 +100,7 @@ class SWERarefaction(SWEWaveSection):
 
     @staticmethod
     def eval(phi, v):
-        return -0.5 * numpy.sqrt(phi) * (v - 1) * (v + 1) * \
+        return 0.5 * numpy.sqrt(phi) * (v - 1) * (v + 1) * \
             numpy.sqrt(phi * v**2 + 4) + 0.5 * v * (phi * v**2 - phi + 2)
 
     @staticmethod
@@ -111,7 +112,7 @@ class SWERarefaction(SWEWaveSection):
         return v_raref
 
 
-    def plotting_data(self, n_points=500):
+    def plotting_data(self, t_end, n_points=500):
         """
         Parameters
         ----------
@@ -130,7 +131,7 @@ class SWERarefaction(SWEWaveSection):
             xi = numpy.zeros_like(phi_points)
             for i in range(len(phi_points)):
                 state = SWEState(phi_points[i], v_points[i])
-                xi[i] = state.wavespeed(self.wavenumber)
+                xi[i] = state.wavespeed(self.wavenumber) * t_end
                 data[i,:] = state.state()
 
         return xi, data
@@ -177,7 +178,6 @@ class SWEShock(SWEWaveSection):
         w_bar = numpy.sqrt(1 + phi_star / phi * (phi_star + phi) / 2)
         v_bar = -numpy.sqrt(1 - 1 / w_bar**2)
         V_s = (v - v_bar) / (1 - v * v_bar)
-        #print('shock1', w_bar, v_bar, V_s)
         Wv_star_bar = phi * w_bar * v_bar / phi_star
         w_star_bar = numpy.sqrt(1 + Wv_star_bar**2)
         v_star_bar = -numpy.sqrt(1 - 1 / w_star_bar**2)
