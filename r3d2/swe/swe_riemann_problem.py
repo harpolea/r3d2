@@ -9,7 +9,6 @@ import numpy
 from matplotlib import pyplot
 from IPython.core.pylabtools import print_figure
 from scipy.optimize import brentq, root
-import matplotlib.transforms as mtrans
 
 from r3d2 import RiemannProblem
 from swe_wave import SWEWave, SWEShock, SWERarefaction
@@ -24,10 +23,6 @@ class ShallowWaterRiemannProblem(RiemannProblem):
     """
 
     def __init__(self, state_l, state_r):
-        """
-        Constructor
-        """
-
         # Cache for plot
         self._png_data = None
         self._svg_data = None
@@ -35,30 +30,33 @@ class ShallowWaterRiemannProblem(RiemannProblem):
         self.state_l = state_l
         self.state_r = state_r
 
-        def find_delta_v(phi_star):
-            v_star_raref = SWERarefaction.rarefaction_solve(self.state_l, phi_star)[-1]
-            V_s, v_star_shock = SWEShock.analytic_shock(self.state_r, phi_star)
-
-            return v_star_raref - v_star_shock
-
         phimin = min(self.state_l.phi, self.state_r.phi)
         phimax = max(self.state_l.phi, self.state_r.phi)
-        while find_delta_v(phimin) * find_delta_v(phimax) > 0.0:
+        while self.find_delta_v(phimin) * self.find_delta_v(phimax) > 0.0:
             phimin /= 2.0
             phimax *= 2.0
 
         phimin_rootfind = 0.9*phimin
         phimax_rootfind = 1.1*phimax
         try:
-            find_delta_v(phimin_rootfind)
+            self.find_delta_v(phimin_rootfind)
         except ValueError:
             phimin_rootfind = phimin
         try:
-            find_delta_v(phimax_rootfind)
+            self.find_delta_v(phimax_rootfind)
         except ValueError:
             phimax_rootfind = phimax
 
-        self.phi_star = brentq(find_delta_v, phimin_rootfind, phimax_rootfind)
+        self.phi_star = brentq(self.find_delta_v, phimin_rootfind, phimax_rootfind)
+        self.make_waves()
+
+    def find_delta_v(self, phi_star):
+        v_star_raref = SWERarefaction.rarefaction_solve(self.state_l, phi_star)[-1]
+        V_s, v_star_shock = SWEShock.analytic_shock(self.state_r, phi_star)
+
+        return v_star_raref - v_star_shock
+
+    def make_waves(self):
         wave_l = SWEWave(self.state_l, self.phi_star, 0)
         wave_r = SWEWave(self.state_r, self.phi_star, 2)
         self.state_star_l = wave_l.q_r
@@ -86,12 +84,6 @@ class ShallowWaterRiemannProblem(RiemannProblem):
         s += self.state_star_r.latex_string()
         s += r". \end{cases}$"
         return s
-    #
-    # def _repr_png_(self):
-    #     pass
-    #
-    # def _repr_svg_(self):
-    #     pass
 
     def _figure_data(self, fig_format):
         fig, axs = pyplot.subplots(1,3)

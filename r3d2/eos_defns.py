@@ -14,7 +14,8 @@ class EOS(metaclass=ABCMeta):
 
     def __init__(self, *args):
         """
-        Initialise by setting all the arguments to be the variables listed in the _fields list
+        Initialise by setting all the arguments to be the variables
+        listed in the _fields list
         """
         if len(args) > len(self._fields):
             raise TypeError(f'Expected {len(self._fields)} arguments')
@@ -44,6 +45,14 @@ class EOS(metaclass=ABCMeta):
         raise NotImplementedError(sys._getframe(1).f_code.co_name + " not implemented for " + self.__class__.__name__)
 
 class Gamma_law(EOS):
+    """
+    Gamma law EOS
+
+    Parameters
+    ----------
+    gamma : float
+        adiabatic index
+    """
     _fields = ['gamma']
 
     def p_from_rho_eps(self, rho, eps):
@@ -62,6 +71,22 @@ class Gamma_law(EOS):
         return p / ((self.gamma - 1.0) * eps)
 
 class Gamma_law_react(EOS):
+    """
+    Reactive gamma law EOS. Describes unreacted material.
+
+    Parameters
+    ----------
+    gamma : float
+        adiabatic index
+    q : float
+        specific heat release of reaction
+    Cv : float
+        heat capacity at constant volume
+    t_i : float
+        ignition temperature
+    eos_inert : EOS
+        equation of state of reacted material
+    """
     _fields = ['gamma', 'q', 'Cv', 't_i', 'eos_inert']
 
     def p_from_rho_eps(self, rho, eps):
@@ -88,10 +113,24 @@ class Gamma_law_react(EOS):
             return self.t_i
 
 class Polytrope_law(EOS):
+    """
+    Polytropic EOS
+
+    Parameters
+    ----------
+    gamma : float array
+        adiabatic indices of cold and hot material
+    gamma_th : float
+        adiabatic index of ?
+    rho_transition : float
+        critical density at which material transitions
+    k : float
+        polytropic constant
+    """
     _fields = ['gamma', 'gamma_th', 'rho_transition', 'k']
 
     def p_from_rho_eps(self, rho, eps):
-        if (rho < self.rho_transition):
+        if rho < self.rho_transition:
             p_cold = self.k[0] * rho**self.gamma[0]
             eps_cold = p_cold / rho / (self.gamma[0] - 1.)
         else:
@@ -105,7 +144,7 @@ class Polytrope_law(EOS):
         return p_cold + p_th
 
     def h_from_rho_eps(self, rho, eps):
-        if (rho < self.rho_transition):
+        if rho < self.rho_transition:
             p_cold = self.k[0] * rho**self.gamma[0]
             eps_cold = p_cold / rho / (self.gamma[0] - 1.0)
         else:
@@ -123,7 +162,7 @@ class Polytrope_law(EOS):
 
     # TODO: fix
     def h_from_rho_p(self, rho, p):
-        if (rho < self.rho_transition):
+        if rho < self.rho_transition:
             p_cold = self.k[0] * rho**self.gamma[0]
             eps_cold = p_cold / rho / (self.gamma[0] - 1.0)
         else:

@@ -31,55 +31,9 @@ from swe_state import SWEState
 
 class SWEWaveSection(WaveSection):
     """
-    Abstract base class for wave sections
+    Class for wave sections
     """
 
-    def __init__(self, q_start, p_end, wavenumber):
-        """
-        A part of a wave. For a single shock or rarefaction, this will be the
-        complete wave. For a deflagration or detonation, it may form part of
-        the full wave.
-        """
-        # NOTE: what does self.trivial mean?
-        self.trivial = False
-        assert(wavenumber in [0, 1, 2]), "wavenumber must be 0, 1, 2"
-        self.wavenumber = wavenumber
-        self.name = None
-        self.q_start = None
-        self.q_end = None
-        self.wavespeed = []
-        self.type = ""
-
-    def latex_string(self):
-        if self.trivial:
-            return ""
-        else:
-            s = deepcopy(self.name)
-            s += r": \lambda^{{({})}}".format(self.wavenumber)
-            if len(self.wavespeed) > 1:
-                s += r"\in [{:.4f}, {:.4f}]".format(self.wavespeed[0],
-                             self.wavespeed[-1])
-            else:
-                s += r"= {:.4f}".format(self.wavespeed[0])
-            return s
-
-    def _repr_latex_(self):
-        s = r"$" + self.latex_string() + r"$"
-        return s
-
-    def __repr__(self):
-        return self.type
-
-    def plotting_data(self):
-
-        if self.trivial:
-            data = numpy.zeros((0,3))
-            xi = numpy.zeros((0,))
-        else:
-            data = numpy.vstack((self.q_start.state(), self.q_end.state()))
-            xi = numpy.array([self.wavespeed[0], self.wavespeed[0]])
-
-        return xi, data
 
 
 # NOTE: this class has a different signature to all other subclasses of
@@ -179,13 +133,18 @@ class SWERarefaction(SWEWaveSection):
         return v_raref
 
 
-    def plotting_data(self):
-        # TODO: make the number of points in the rarefaction plot a parameter
+    def plotting_data(self, n_points=500):
+        """
+        Parameters
+        ----------
+        n_points: integer
+            number of points in the rarefaction plot
+        """
         if self.trivial:
             xi = numpy.zeros((0,))
             data = numpy.zeros((0,3))
         else:
-            phi_points = numpy.linspace(self.q_start.phi, self.q_end.phi, 500)
+            phi_points = numpy.linspace(self.q_start.phi, self.q_end.phi, n_points)
 
             v_points = self.rarefaction_solve(self.q_start, self.q_end.phi, len(phi_points))
             #self.q_end = SWEState(self.q_end.phi, v_end)
@@ -270,10 +229,7 @@ class SWEWave(Wave):
             characterises direction of travel of wave
         """
 
-        # NOTE: it's not so clear what wavenumber is - change to something like a wavedirection variable which can be left/right/static?
-        self.wavenumber = wavenumber
-        self.wave_sections = []
-        self.wavespeed = []
+        super().__init__(self, q_known, unknown_value, wavenumber)
 
         waves = self.build_wave_section(q_known, unknown_value,
                                          wavenumber)
@@ -328,62 +284,3 @@ class SWEWave(Wave):
             return [SWEShock(q_known, unknown_value, wavenumber)]
         else:
             return [SWERarefaction(q_known, unknown_value, wavenumber)]
-
-
-    def plotting_data(self):
-
-        xi_wave = numpy.zeros((0,))
-        data_wave = numpy.zeros((0,3))
-        for wavesection in self.wave_sections:
-            xi_section, data_section = wavesection.plotting_data()
-            xi_wave = numpy.hstack((xi_wave, xi_section))
-            data_wave = numpy.vstack((data_wave, data_section))
-
-        if self.wavenumber == 2:
-            xi_wave = xi_wave[-1::-1]
-            data_wave = data_wave[-1::-1,:]
-
-        return xi_wave, data_wave
-
-    def wave_sections_latex_string(self):
-        names = []
-        sections = deepcopy(self.wave_sections)
-        if self.wavenumber == 2:
-            sections.reverse()
-        for sec in sections:
-            if not sec.trivial:
-                names.append(sec.name)
-        s = ""
-        if len(names)==1:
-            s = names[0]
-        elif len(names)>1:
-            s = r"\left("
-            for n in names:
-                s += n
-            s += r"\right) "
-        return s
-
-    def latex_string(self):
-        s = self.wave_sections_latex_string()
-        speeds = []
-        sections = deepcopy(self.wave_sections)
-        if self.wavenumber == 2:
-            sections.reverse()
-        for sec in sections:
-            if not sec.trivial:
-                for speed in sec.wavespeed:
-                    speeds.append(speed)
-        if len(speeds) == 0:
-            return ""
-        elif len(speeds) == 1:
-            s += r": \lambda^{{({})}}".format(self.wavenumber)
-            s += r"= {:.4f}".format(speeds[0])
-        else:
-            s += r": \lambda^{{({})}}".format(self.wavenumber)
-            s += r"\in [{:.4f}, {:.4f}]".format(min(speeds), max(speeds))
-
-        return s
-
-    def _repr_latex_(self):
-        s = r"$" + self.latex_string() + r"$"
-        return s

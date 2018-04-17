@@ -75,10 +75,3 @@ class SWEState(State):
         s += "= "
         s += r"\begin{{pmatrix}} {} \\ {} \end{{pmatrix}}".format(self.phi, self.v)
         return s
-
-    def _repr_latex_(self):
-        """
-        IPython or Jupyter repr.
-        """
-        s = r"$" + self.latex_string() + r"$"
-        return s
