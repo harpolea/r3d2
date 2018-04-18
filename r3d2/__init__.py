@@ -11,4 +11,5 @@ from .state import State
 from .wave import Wave, WaveSection
 from .riemann_problem import RiemannProblem
 from .eos_defns import EOS, Gamma_law, Gamma_law_react, Polytrope_law
-from .factory import SWEFactory, ReactiveRelFactory
+from .factory import AbstractFactory, SWEFactory, ReactiveRelFactory
+from .euler.euler_factory import EulerFactory
