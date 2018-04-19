@@ -61,10 +61,10 @@ class EulerWaveSection(WaveSection):
                 shock_root_max = shock_root_rho(max_rho)
         rho = brentq(shock_root_rho, min_rho, max_rho)
         h = unknown_eos.h_from_rho_p(rho, p_end)
-        eps = h - 1.0 - p_end / rho
+        eps = h - p_end / rho
         dp = p_end - q_start.p
-        dh2 = h**2 - q_start.h**2
-        j2 = -dp / (dh2 / dp - 2.0 * q_start.h / q_start.rho)
+        #dh2 = h**2 - q_start.h**2
+        j2 = -dp / (1/rho - 1/q_start.rho)#(dh2 / dp - 2.0 * q_start.h / q_start.rho)
 
         return j2, rho, eps, dp
 
@@ -76,20 +76,16 @@ class EulerWaveSection(WaveSection):
             return 10.0 # Unphysical part of Crussard curve, return a random number
         j = numpy.sqrt(j2)
         v_deflagration = (q_precursor.rho**2 *
-            q_precursor.W_lorentz**2 * q_precursor.v + \
+            q_precursor.v + \
             lr_sign * j**2 * \
             numpy.sqrt(1.0 + q_precursor.rho**2 *
-            q_precursor.W_lorentz**2 *
             (1.0 - q_precursor.v**2) / j**2)) / \
-            (q_precursor.rho**2 * q_precursor.W_lorentz**2 + j**2)
-        W_lorentz_deflagration = 1.0 / numpy.sqrt(1.0 - v_deflagration**2)
-        v = (q_precursor.h * q_precursor.W_lorentz *
-             q_precursor.v + lr_sign * dp *
-             W_lorentz_deflagration / j) / \
-            (q_precursor.h * q_precursor.W_lorentz + dp * (1.0 /
-             q_precursor.rho / q_precursor.W_lorentz + \
-             lr_sign * q_precursor.v *
-             W_lorentz_deflagration / j))
+            (q_precursor.rho**2 + j**2)
+        v = (q_precursor.h *
+             q_precursor.v + lr_sign * dp / j) / \
+            (q_precursor.h * + dp * (1.0 /
+             q_precursor.rho + \
+             lr_sign * q_precursor.v / j))
         q_unknown = EulerState(rho, v, eps, unknown_eos, label)
 
         return q_unknown.wavespeed(wavenumber) - v_deflagration
@@ -99,15 +95,16 @@ class EulerWaveSection(WaveSection):
                                  eos_end = None):
         if eos_end is None:
             eos_end = q_start.eos
-        j = numpy.sqrt(j2)
-        v_shock = (q_start.rho**2 * q_start.W_lorentz**2 * q_start.v + \
-            lr_sign * j**2 * \
-            numpy.sqrt(1.0 + q_start.rho**2 * q_start.W_lorentz**2 * (1.0 - q_start.v**2) / j**2)) / \
-            (q_start.rho**2 * q_start.W_lorentz**2 + j**2)
-        W_lorentz_shock = 1.0 / numpy.sqrt(1.0 - v_shock**2)
-        v = (q_start.h * q_start.W_lorentz * q_start.v + lr_sign * dp * W_lorentz_shock / j) / \
-            (q_start.h * q_start.W_lorentz + dp * (1.0 / q_start.rho / q_start.W_lorentz + \
-            lr_sign * q_start.v * W_lorentz_shock / j))
+        v_shock = q_start.v + lr_sign * numpy.sqrt(rho/q_start.rho * dp / (rho - q_start.rho))
+        v = v_shock - lr_sign * numpy.sqrt(q_start.rho/rho * dp / (rho - q_start.rho))
+        # j = numpy.sqrt(j2)
+        # v_shock = (q_start.rho**2 * q_start.v + \
+        #     lr_sign * j**2 * \
+        #     numpy.sqrt(1.0 + q_start.rho**2 * (1.0 - q_start.v**2) / j**2)) / \
+        #     (q_start.rho**2 + j**2)
+        # v = (q_start.h * q_start.v + lr_sign * dp / j) / \
+        #     (q_start.h + dp * (1.0 / q_start.rho + \
+        #     lr_sign * q_start.v/ j))
         q_end = EulerState(rho, v, eps, eos_end, label=label)
         return v_shock, q_end
 
@@ -223,7 +220,7 @@ class Rarefaction(EulerWaveSection):
         # and original Pons et al paper for details.
         g = 0
         dwdp[0] = 1.0 / (h * cs**2)
-        dwdp[1] = lr_sign / (rho * h * W_lorentz**2 * cs) / numpy.sqrt(1.0 + g)
+        dwdp[1] = lr_sign / (rho * h * cs)
         dwdp[2] = local_state.p / (rho**2 * h * cs**2)
         return dwdp
 
@@ -231,14 +228,14 @@ class Rarefaction(EulerWaveSection):
         # TODO: make the number of points in the rarefaction plot a parameter
         if self.trivial:
             xi = numpy.zeros((0,))
-            data = numpy.zeros((0,8))
+            data = numpy.zeros((0,len(self.q_start.state())))
         else:
             p = numpy.linspace(self.q_start.p, self.q_end.p, 500)
             w_all = odeint(self.rarefaction_dwdp,
                            numpy.array([self.q_start.rho, self.q_start.v, self.q_start.eps]),
                                p, rtol = 1e-12, atol = 1e-10,
                                args=(self.q_start, self.wavenumber))
-            data = numpy.zeros((len(p),8))
+            data = numpy.zeros((len(p),len(self.q_start.state())))
             xi = numpy.zeros_like(p)
             for i in range(len(p)):
                 state = EulerState(w_all[i,0], w_all[i,1],

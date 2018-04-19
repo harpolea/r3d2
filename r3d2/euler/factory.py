@@ -1,6 +1,5 @@
 from r3d2 import AbstractFactory
-
-from r3d2.euler import *
+from r3d2.euler import euler_riemann_problem, euler_state, euler_wave
 
 class EulerFactory(AbstractFactory):
     """

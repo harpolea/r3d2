@@ -10,6 +10,8 @@ __all__ = ["state", "wave", "riemann_problem", "eos_defns", "factory"]
 from .state import State
 from .wave import Wave, WaveSection
 from .riemann_problem import RiemannProblem
-from .eos_defns import EOS, Gamma_law, Gamma_law_react, Polytrope_law
-from .factory import AbstractFactory, SWEFactory, ReactiveRelFactory
-from .euler.euler_factory import EulerFactory
+from .eos_defns import EOS
+from .factory import AbstractFactory
+from .euler.factory import EulerFactory
+from .swe.factory import SWEFactory
+from .reactive_rel.factory import ReactiveRelFactory

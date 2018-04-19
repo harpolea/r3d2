@@ -53,7 +53,7 @@ class EulerRiemannProblem(RiemannProblem):
         ax.set_xlabel(r"$x$")
         ax.set_ylabel(r"$t$")
         ax.set_title("Characteristics")
-        names = [r"$\rho$", r"$v$", r"$v_t$", r"$\epsilon$", r"$p$", r"$W$",
+        names = [r"$\rho$", r"$v$", r"$\epsilon$", r"$p$", 
                  r"$h$", r"$c_s$"]
         xi = [-1.05]
         data = self.state_l.state()
@@ -68,6 +68,8 @@ class EulerRiemannProblem(RiemannProblem):
                 if ax_i == 0 and ax_j == 0:
                     continue
                 nvar = ax_i*3 + ax_j - 1
+                if nvar >= len(self.state_l.state()):
+                    break
                 axs[ax_i, ax_j].plot(xi, data[:, nvar])
                 var_max = numpy.max(data[:, nvar])
                 var_min = numpy.min(data[:, nvar])
