@@ -1,4 +1,4 @@
-from r3d2 import Gamma_law, Gamma_law_react, Polytrope_law
+from r3d2.reactive_rel import Gamma_law, Gamma_law_react, Polytrope_law
 import numpy
 from numpy.testing import assert_allclose
 

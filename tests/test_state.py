@@ -1,4 +1,5 @@
-from r3d2 import Gamma_law, Gamma_law_react, ReactiveRelFactory, SWEFactory
+from r3d2 import ReactiveRelFactory, SWEFactory
+from r3d2.reactive_rel import Gamma_law, Gamma_law_react
 from numpy.testing import assert_allclose
 from numpy import sqrt
 from nose.tools import assert_raises
