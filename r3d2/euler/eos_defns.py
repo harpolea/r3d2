@@ -119,7 +119,7 @@ class Polytrope_law(EOS):
 
         p_th = max(0., (self.gamma_th - 1.) * rho * (eps - eps_cold))
 
-        return 1. + eps_cold + eps + (p_cold + p_th)/ rho
+        return eps_cold + eps + (p_cold + p_th)/ rho
 
     def cs_from_rho_eps(self, rho, eps):
         return numpy.sqrt(self.gamma[0] * self.p_from_rho_eps(rho, eps) / (rho * self.h_from_rho_eps(rho, eps)))

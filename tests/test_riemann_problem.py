@@ -1,5 +1,6 @@
-from r3d2 import ReactiveRelFactory, SWEFactory
+from r3d2 import ReactiveRelFactory, SWEFactory, EulerFactory
 from r3d2.reactive_rel import Gamma_law, Gamma_law_react
+from r3d2 import euler
 from numpy.testing import assert_allclose
 
 def test_standard_sod():
@@ -251,6 +252,18 @@ def test_trivial_swe():
     """
     f = SWEFactory()
     U = f.state(1.0, 0.0)
+    rp = f.riemann_problem(U, U)
+    for wave in rp.waves:
+        assert(wave.wave_sections[0].trivial)
+        assert(wave.name == "")
+
+def test_trivial_euler():
+    """
+    A trivial Newtonian Riemann Problem
+    """
+    eos = euler.Gamma_law(5.0/3.0)
+    f = EulerFactory()
+    U = f.state(1.0, 0.0, 1.0, eos)
     rp = f.riemann_problem(U, U)
     for wave in rp.waves:
         assert(wave.wave_sections[0].trivial)

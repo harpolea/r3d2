@@ -1,4 +1,5 @@
 from r3d2.reactive_rel import Gamma_law, Gamma_law_react, Polytrope_law
+from r3d2 import euler
 import numpy
 from numpy.testing import assert_allclose
 
@@ -59,3 +60,15 @@ def test_eos_polytrope_law_cold():
     h_from_rho_p = eos.h_from_rho_p(rho, p)
     # TODO: fix this
     #assert_allclose(h, h_from_rho_p, rtol=1.e-8)
+
+def test_eos_newtonian_gamma_law():
+    eos = euler.Gamma_law(5.0/3.0)
+    rho = 1.0
+    eps = 1.0
+    p_true = 2.0 / 3.0
+    h_true = 5.0 / 3.0
+    cs_true = numpy.sqrt(10.0 / 15.0)
+    p = eos.p_from_rho_eps(rho, eps)
+    h = eos.h_from_rho_eps(rho, eps)
+    cs = eos.cs_from_rho_eps(rho, eps)
+    assert_allclose([p, h, cs], [p_true, h_true, cs_true], rtol=1.e-8)
