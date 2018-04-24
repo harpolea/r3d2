@@ -26,34 +26,18 @@ class SWERiemannProblem(RiemannProblem):
         self.state_r = state_r
         self.t_end = t_end
 
-        # phimin = min(self.state_l.phi, self.state_r.phi)
-        # phimax = max(self.state_l.phi, self.state_r.phi)
-        # while self.find_delta_v(phimin) * self.find_delta_v(phimax) > 0.0:
-        #     phimin /= 2.0
-        #     phimax *= 2.0
-        #
-        # phimin_rootfind = 0.9*phimin
-        # phimax_rootfind = 1.1*phimax
-        # try:
-        #     self.find_delta_v(phimin_rootfind)
-        # except ValueError:
-        #     phimin_rootfind = phimin
-        # try:
-        #     self.find_delta_v(phimax_rootfind)
-        # except ValueError:
-        #     phimax_rootfind = phimax
-
-        phimin_rootfind = state_l.phi
-        phimax_rootfind = state_r.phi
+        phimin_rootfind = min(state_l.phi, state_r.phi)
+        phimax_rootfind = max(state_l.phi, state_r.phi)
 
         self.phi_star = brentq(self.find_delta_v, phimin_rootfind, phimax_rootfind)
         self.make_waves()
 
     def find_delta_v(self, phi_star):
-        v_star_raref = SWERarefaction.rarefaction_solve(self.state_l, phi_star)[-1]
-        _, v_star_shock = SWEShock.analytic_shock(self.state_r, phi_star)
 
-        return v_star_raref - v_star_shock
+        wave_l = SWEWave(self.state_l, phi_star, 0)
+        wave_r = SWEWave(self.state_r, phi_star, 2)
+
+        return wave_l.q_r.v - wave_r.q_l.v
 
     def make_waves(self):
         wave_l = SWEWave(self.state_l, self.phi_star, 0)

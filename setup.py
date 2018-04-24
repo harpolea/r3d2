@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     version='0.1',
     name='r3d2',
-    packages=['r3d2', 'r3d2.swe', 'r3d2.reactive_rel', 'r3d2.euler'],
+    packages=['r3d2', 'r3d2.swe', 'r3d2.reactive_rel', 'r3d2.euler', 'r3d2.burgers'],
     license='MIT',
     description='Relativistic Reactive Riemann problem solver for Deflagrations and Detonations',
     install_requires=['scipy','numpy','matplotlib'],

@@ -219,6 +219,20 @@ def test_swe():
     wavespeeds = [-0.6403124237432849, 0.5943695015574617]
     assert_allclose([rp.waves[0].wavespeed[0], rp.waves[2].wavespeed[0]], wavespeeds)
 
+def test_swe_reverse():
+    """
+    Test shallow water problem in reverse direction.
+    """
+    f = SWEFactory()
+    Ul = f.state(0.01, 0)
+    Ur = f.state(0.41, 0)
+    rp = f.riemann_problem(Ul, Ur, t_end=0.3)
+    assert(rp.waves[0].wave_sections[0].name == r"{\cal S}_{\leftarrow}")
+    assert(rp.waves[1].wave_sections[0].trivial)
+    assert(rp.waves[2].wave_sections[0].name == r"{\cal R}_{\rightarrow}")
+    wavespeeds = [-0.5943695015574617, 0.6403124237432849]
+    assert_allclose([rp.waves[0].wavespeed[0], rp.waves[2].wavespeed[1]], wavespeeds)
+
 def test_swe_extreme():
     """
     Test shallow water problem.

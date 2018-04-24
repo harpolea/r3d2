@@ -33,6 +33,9 @@ class Gamma_law(EOS):
     def rho_from_p_eps(self, p, eps):
         return p / ((self.gamma - 1.0) * eps)
 
+    def eps_from_rho_p(self, rho, p):
+        return p / ((self.gamma - 1.0) * rho)
+
 class Gamma_law_react(EOS):
     """
     Reactive gamma law EOS. Describes unreacted material.

@@ -1,13 +1,13 @@
 R3D2
 ====
 
-.. image:: https://travis-ci.org/harpolea/r3d2.svg?branch=master
+.. image:: https://travis-ci.org/harpolea/r3d2.svg?branch=factory
     :target: https://travis-ci.org/harpolea/r3d2
-.. image:: https://readthedocs.org/projects/r3d2/badge/?version=latest
-    :target: http://r3d2.readthedocs.io/en/latest/?badge=latest
+.. image:: https://readthedocs.org/projects/r3d2/badge/?version=factory
+    :target: http://r3d2.readthedocs.io/en/latest/?badge=factory
     :alt: Documentation Status
-.. image:: https://codecov.io/github/harpolea/r3d2/coverage.svg?branch=master
-    :target: https://codecov.io/github/harpolea/r3d2?branch=master
+.. image:: https://codecov.io/github/harpolea/r3d2/coverage.svg?branch=factory
+    :target: https://codecov.io/github/harpolea/r3d2?branch=factory
 .. image:: https://zenodo.org/badge/21891/harpolea/r3d2.svg
     :target: https://zenodo.org/badge/latestdoi/21891/harpolea/r3d2
 
@@ -38,26 +38,31 @@ should work.
 Usage
 -----
 
-Import the equations of state, State class, and Riemann Problem class:
+Import the gamma law equation of state and one of the factories:
 ::
 
-    >>> from r3d2 import eos_defns, State, RiemannProblem
+    >>> from r3d2 import Gamma_law, ReactiveRelFactory
+
+Set up the factory:
+::
+
+    >>> f = ReactiveRelFactory()
 
 Set up an equation of state:
 ::
 
-    >>> eos = eos_defns.eos_gamma_law(5.0/3.0)
+    >>> eos = Gamma_law(5.0/3.0)
 
 Set up the left and right states:
 ::
 
-    >>> U_L = State(rho=1.0, v=0.0, vt=0.0, eps=1.5, eos=eos)
-    >>> U_R = State(rho=0.125, v=0.0, vt=0.0, eps=1.2, eos=eos)
+    >>> U_L = f.state(rho=1.0, v=0.0, vt=0.0, eps=1.5, eos=eos)
+    >>> U_R = f.state(rho=0.125, v=0.0, vt=0.0, eps=1.2, eos=eos)
 
 Solve the Riemann Problem:
 ::
 
-    >>> rp = RiemannProblem(U_L, U_R)
+    >>> rp = f.riemann_problem(U_L, U_R)
 
 The output can be examined for details of the solution and its wave structure. For example, the three waves are each built of wave *sections*, which can be examined to check their type, via e.g.
 

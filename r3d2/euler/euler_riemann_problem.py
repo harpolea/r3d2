@@ -20,16 +20,35 @@ class EulerRiemannProblem(RiemannProblem):
 
     def find_delta_v(self, p_star):
 
-        wave_l = EulerWave(self.state_l, p_star, 0)
-        wave_r = EulerWave(self.state_r, p_star, 2)
+        gamma_l = self.state_l.eos.gamma
+        gamma_r = self.state_l.eos.gamma
 
-        return wave_l.q_r.v - wave_r.q_l.v
+        A_l = 2 / (gamma_l+1) / self.state_l.rho
+        B_l = (gamma_l-1) / (gamma_l+1) * self.state_l.p
+        A_r = 2 / (gamma_r+1) / self.state_r.rho
+        B_r = (gamma_r-1) / (gamma_r+1) * self.state_r.p
+
+        f_l = 0
+        f_r = 0
+
+        if p_star > self.state_l.p:
+            f_l = (p_star - self.state_l.p) * numpy.sqrt(A_l / (p_star + B_l))
+        else:
+            f_l = 2 * self.state_l.cs / (gamma_l - 1) * ((p_star / self.state_l.p)**(0.5*(gamma_l-1)/gamma_l) - 1.)
+
+        if p_star > self.state_r.p:
+            f_r = (p_star - self.state_r.p) * numpy.sqrt(A_r / (p_star + B_r))
+        else:
+            f_r = 2 * self.state_r.cs / (gamma_r - 1) * ((p_star / self.state_r.p)**(0.5*(gamma_r-1)/gamma_r) - 1.)
+
+        return f_l + f_r + self.state_r.v - self.state_l.v
 
     def make_waves(self):
         wave_l = EulerWave(self.state_l, self.p_star, 0)
         wave_r = EulerWave(self.state_r, self.p_star, 2)
         self.state_star_l = wave_l.q_r
         self.state_star_r = wave_r.q_l
+        print(f'vl = {wave_l.q_r.v}, vr = {wave_r.q_l.v}')
         self.waves = [wave_l,
                       EulerWave(self.state_star_l, self.state_star_r, 1),
                       wave_r]
@@ -53,7 +72,7 @@ class EulerRiemannProblem(RiemannProblem):
         ax.set_xlabel(r"$x$")
         ax.set_ylabel(r"$t$")
         ax.set_title("Characteristics")
-        names = [r"$\rho$", r"$v$", r"$\epsilon$", r"$p$", 
+        names = [r"$\rho$", r"$v$", r"$\epsilon$", r"$p$",
                  r"$h$", r"$c_s$"]
         xi = [-1.05]
         data = self.state_l.state()

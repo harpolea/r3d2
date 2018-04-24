@@ -76,39 +76,30 @@ class SWERarefaction(SWEWaveSection):
             v_unknown = v_known
             self.name = ""
         else:
+            lr_sign = self.wavenumber - 1
             phi_points = numpy.linspace(q_start.phi, phi_end)
-            v_star = self.rarefaction_solve(q_start, phi_end, len(phi_points))[-1]
+            v_star = self.rarefaction_solve(q_start, phi_end, lr_sign, len(phi_points))[-1]
 
             self.q_end = SWEState(phi_end, v_star, label=label)
             v_unknown = self.q_end.wavespeed(self.wavenumber)
 
-            #print(f'v_unknown = {v_unknown}, v_known = {v_known}')
             if self.wavenumber == 0:
                 self.wavespeed = numpy.array([v_known, v_unknown])
             else:
                 self.wavespeed = numpy.array([v_unknown, v_known])
 
     @staticmethod
-    def raref(v, phi):
-        return 0.5 * (-v**3 + v + (v**2 - 1) * numpy.sqrt(v**2 + 4 / phi))
+    def raref(v, phi, lr_sign):
+        return 0.5 * (-v**3 + v - lr_sign * (v**2 - 1) * numpy.sqrt(v**2 + 4 / phi))
 
     @staticmethod
-    def eval(phi, v):
-        """
-        Eigenvalue
-        """
-        return 0.5 * numpy.sqrt(phi) * (v - 1) * (v + 1) * \
-            numpy.sqrt(phi * v**2 + 4) + 0.5 * v * (phi * v**2 - phi + 2)
-
-    @staticmethod
-    def rarefaction_solve(q, phi_star, n_phi_vals=2):
+    def rarefaction_solve(q, phi_star, lr_sign, n_phi_vals=2):
         """
         Solve across the rarefaction wave
         """
         phi, v = q.prim()
         phi_points = numpy.linspace(phi, phi_star, n_phi_vals)
-        # lam_l = SWERarefaction.eval(phi, v)
-        v_raref = odeint(SWERarefaction.raref, v, phi_points)
+        v_raref = odeint(SWERarefaction.raref, v, phi_points, args=(lr_sign,)).flatten()
         return v_raref
 
 
@@ -126,8 +117,9 @@ class SWERarefaction(SWEWaveSection):
             data = numpy.zeros((0,3))
         else:
             phi_points = numpy.linspace(self.q_start.phi, self.q_end.phi, n_points)
+            lr_sign = self.wavenumber - 1
 
-            v_points = self.rarefaction_solve(self.q_start, self.q_end.phi, len(phi_points))
+            v_points = self.rarefaction_solve(self.q_start, self.q_end.phi, lr_sign, len(phi_points))
             #self.q_end = SWEState(self.q_end.phi, v_end)
             data = numpy.zeros((len(phi_points),3))
             xi = numpy.zeros_like(phi_points)
@@ -177,14 +169,14 @@ class SWEShock(SWEWaveSection):
             v_shock = q_start.wavespeed(self.wavenumber)
             self.name = ""
         else:
-            v_shock, v_star = self.analytic_shock(q_start, phi_end)
+            v_shock, v_star = self.analytic_shock(q_start, phi_end, lr_sign)
             self.q_end = SWEState(phi_end, v_star, label=label)
 
         self.wavespeed = [v_shock]
 
 
     @staticmethod
-    def analytic_shock(q, phi_star):
+    def analytic_shock(q, phi_star, lr_sign):
         """
         Analytic solution for shock
 
@@ -197,11 +189,11 @@ class SWEShock(SWEWaveSection):
         """
         phi, v = q.prim()
         w_bar = numpy.sqrt(1 + phi_star / phi * (phi_star + phi) / 2)
-        v_bar = -numpy.sqrt(1 - 1 / w_bar**2)
+        v_bar = -lr_sign * numpy.sqrt(1 - 1 / w_bar**2)
         V_s = (v - v_bar) / (1 - v * v_bar)
         Wv_star_bar = phi * w_bar * v_bar / phi_star
         w_star_bar = numpy.sqrt(1 + Wv_star_bar**2)
-        v_star_bar = -numpy.sqrt(1 - 1 / w_star_bar**2)
+        v_star_bar = -lr_sign * numpy.sqrt(1 - 1 / w_star_bar**2)
         v_star = (v_star_bar + V_s) / (1 + v_star_bar * V_s)
         return V_s, v_star
 

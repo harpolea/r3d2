@@ -68,10 +68,6 @@ class EulerState(State):
             return self.v
         elif abs(wavenumber - 1) == 1:
             s = wavenumber - 1
-            # term1 = self.v * (1.0 - self.cs**2)
-            # term2 = (1.0 - self.v**2) * (1.0 - self.v**2)
-            # term3 = 1.0 - (self.v**2) * self.cs**2
-            # return (term1 + s * self.cs * numpy.sqrt(term2)) / term3
             return self.v + s * self.cs
         else:
             raise NotImplementedError("wavenumber must be 0, 1, 2")

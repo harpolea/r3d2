@@ -11,100 +11,48 @@ class EulerWaveSection(WaveSection):
     """
     Class for wave sections
     """
+    #
+    # @staticmethod
+    # def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
+    #     lr_sign = wavenumber - 1
+    #     j2, rho, eps, dp = EulerWaveSection.mass_flux_squared(q_precursor, p_0_star, unknown_eos)
+    #     if j2 < 0:
+    #         return 10.0 # Unphysical part of Crussard curve, return a random number
+    #     j = numpy.sqrt(j2)
+    #     v_deflagration = (q_precursor.rho**2 *
+    #         q_precursor.v + \
+    #         lr_sign * j**2 * \
+    #         numpy.sqrt(1.0 + q_precursor.rho**2 *
+    #         (1.0 - q_precursor.v**2) / j**2)) / \
+    #         (q_precursor.rho**2 + j**2)
+    #     v = (q_precursor.h *
+    #          q_precursor.v + lr_sign * dp / j) / \
+    #         (q_precursor.h * + dp * (1.0 /
+    #          q_precursor.rho + \
+    #          lr_sign * q_precursor.v / j))
+    #     q_unknown = EulerState(rho, v, eps, unknown_eos, label)
+    #
+    #     return q_unknown.wavespeed(wavenumber) - v_deflagration
 
     @staticmethod
-    def mass_flux_squared(q_start, p_end, unknown_eos=None):
-        r"""
-        Calculates the square of the mass flux through a region, given the state at the start of the region and the pressure at the end.
-
-        Parameters
-        ----------
-
-        q_start : State
-            State at start of the region
-        p_end : scalar
-            Pressure at the end of the region
-        unknown_eos : EOS, optional
-            Equation of state in the region (provided if different from EoS
-            of q_start)
-        """
-
-        if unknown_eos is None:
-            unknown_eos = q_start.eos
-
-        def shock_root_rho(rho):
-            h = unknown_eos.h_from_rho_p(rho, p_end)
-            return (h**2 - q_start.h**2) - \
-            (h/rho + q_start.h/q_start.rho) * (p_end - q_start.p)
-
-        if p_end >= q_start.p:
-            # Shock
-            min_rho = q_start.rho
-            shock_root_min = shock_root_rho(min_rho)
-            max_rho = numpy.sqrt(p_end/q_start.p) * q_start.rho
-            shock_root_max = shock_root_rho(max_rho)
-            while(shock_root_min * shock_root_max > 0.0):
-                min_rho /= 1.001 # Not sure - could end up with unphysical root?
-                max_rho *= 10.0
-                shock_root_min = shock_root_rho(min_rho)
-                shock_root_max = shock_root_rho(max_rho)
-        else:
-            # Deflagration
-            max_rho = q_start.rho
-            shock_root_max = shock_root_rho(max_rho)
-            min_rho = numpy.sqrt(p_end/q_start.p) * q_start.rho
-            shock_root_min = shock_root_rho(min_rho)
-            while(shock_root_min * shock_root_max > 0.0):
-                min_rho /= 10.0 # Not sure - could end up with unphysical root?
-                max_rho *= 1.001
-                shock_root_min = shock_root_rho(min_rho)
-                shock_root_max = shock_root_rho(max_rho)
-        rho = brentq(shock_root_rho, min_rho, max_rho)
-        h = unknown_eos.h_from_rho_p(rho, p_end)
-        eps = h - p_end / rho
-        dp = p_end - q_start.p
-        #dh2 = h**2 - q_start.h**2
-        j2 = -dp / (1/rho - 1/q_start.rho)#(dh2 / dp - 2.0 * q_start.h / q_start.rho)
-
-        return j2, rho, eps, dp
-
-    @staticmethod
-    def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
-        lr_sign = wavenumber - 1
-        j2, rho, eps, dp = EulerWaveSection.mass_flux_squared(q_precursor, p_0_star, unknown_eos)
-        if j2 < 0:
-            return 10.0 # Unphysical part of Crussard curve, return a random number
-        j = numpy.sqrt(j2)
-        v_deflagration = (q_precursor.rho**2 *
-            q_precursor.v + \
-            lr_sign * j**2 * \
-            numpy.sqrt(1.0 + q_precursor.rho**2 *
-            (1.0 - q_precursor.v**2) / j**2)) / \
-            (q_precursor.rho**2 + j**2)
-        v = (q_precursor.h *
-             q_precursor.v + lr_sign * dp / j) / \
-            (q_precursor.h * + dp * (1.0 /
-             q_precursor.rho + \
-             lr_sign * q_precursor.v / j))
-        q_unknown = EulerState(rho, v, eps, unknown_eos, label)
-
-        return q_unknown.wavespeed(wavenumber) - v_deflagration
-
-    @staticmethod
-    def post_discontinuity_state(p_star, q_start, lr_sign, label, j2, rho, eps, dp,
-                                 eos_end = None):
+    def post_discontinuity_state(p_star, q_start, lr_sign, label, eos_end=None):
         if eos_end is None:
             eos_end = q_start.eos
-        v_shock = q_start.v + lr_sign * numpy.sqrt(rho/q_start.rho * dp / (rho - q_start.rho))
-        v = v_shock - lr_sign * numpy.sqrt(q_start.rho/rho * dp / (rho - q_start.rho))
-        # j = numpy.sqrt(j2)
-        # v_shock = (q_start.rho**2 * q_start.v + \
-        #     lr_sign * j**2 * \
-        #     numpy.sqrt(1.0 + q_start.rho**2 * (1.0 - q_start.v**2) / j**2)) / \
-        #     (q_start.rho**2 + j**2)
-        # v = (q_start.h * q_start.v + lr_sign * dp / j) / \
-        #     (q_start.h + dp * (1.0 / q_start.rho + \
-        #     lr_sign * q_start.v/ j))
+
+        gamma = q_start.eos.gamma
+
+        A = 2 / (gamma+1) / q_start.rho
+        B = (gamma-1) * q_start.p / (gamma+1)
+        f = (p_star - q_start.p) * numpy.sqrt(A / (p_star + B))
+        Q = numpy.sqrt((p_star + B) / A)
+
+        v = q_start.v + lr_sign * f
+
+        rho = q_start.rho * (p_star / q_start.p + (gamma-1)/(gamma+1)) / ((gamma-1)/(gamma+1) * p_star / q_start.p + 1)
+        eps = q_start.eos.eps_from_rho_p(rho, p_star)
+
+        v_shock = q_start.v + lr_sign * Q / q_start.rho
+
         q_end = EulerState(rho, v, eps, eos_end, label=label)
         return v_shock, q_end
 
@@ -136,6 +84,7 @@ class Contact(EulerWaveSection):
 
         assert(numpy.allclose(q_start.v, q_end.v)), "Velocities of states "\
         "must match for a contact"
+        # print(f'p_start = {q_start.p}, p_end = {q_end.p}')
         assert(numpy.allclose(q_start.p, q_end.p)), "Pressures of states "\
         "must match for a contact"
         assert(numpy.allclose(q_start.wavespeed(wavenumber),
@@ -172,16 +121,14 @@ class Rarefaction(EulerWaveSection):
         if numpy.allclose(q_start.p, p_end):
             self.trivial = True
             self.q_end = EulerState(q_start.rho, q_start.v, q_start.eps,
-            q_start.eos, label=label)
+                                    q_start.eos, label=label)
             v_unknown = v_known
             self.name = ""
         else:
-            w_all = odeint(self.rarefaction_dwdp,
-                           numpy.array([q_start.rho, q_start.v, q_start.eps]),
-                           [q_start.p, p_end], rtol = 1e-12, atol = 1e-10,
-                           args=((q_start, self.wavenumber)))
+            w_all = self.rarefaction_w(q_start, [q_start.p, p_end],
+                                       self.wavenumber)
             self.q_end = EulerState(w_all[-1, 0], w_all[-1, 1],
-                              w_all[-1, 2], q_start.eos, label=label)
+                                    w_all[-1, 2], q_start.eos, label=label)
             v_unknown = self.q_end.wavespeed(self.wavenumber)
             if self.wavenumber == 0:
                 self.wavespeed = numpy.array([v_known, v_unknown])
@@ -189,7 +136,7 @@ class Rarefaction(EulerWaveSection):
                 self.wavespeed = numpy.array([v_unknown, v_known])
 
     @staticmethod
-    def rarefaction_dwdp(w, p, q_known, wavenumber):
+    def rarefaction_w(q_known, ps, wavenumber):
         r"""
         There is a tricky point here that needs investigation. If
         the input p is used here, rather than local_state.p, then they
@@ -210,19 +157,25 @@ class Rarefaction(EulerWaveSection):
             Wave number
         """
         lr_sign = wavenumber - 1
-        dwdp = numpy.zeros_like(w)
-        rho, v, eps = w
-        local_state = EulerState(rho, v, eps, q_known.eos)
-        cs = local_state.cs
-        h = local_state.h
-        xi = local_state.wavespeed(wavenumber)
-        # g quantifies the effect of tangential velocities: see the Living Review
-        # and original Pons et al paper for details.
-        g = 0
-        dwdp[0] = 1.0 / (h * cs**2)
-        dwdp[1] = lr_sign / (rho * h * cs)
-        dwdp[2] = local_state.p / (rho**2 * h * cs**2)
-        return dwdp
+        ws = numpy.zeros((len(ps), len(q_known.prim())))
+        #xi_start = q_known.v - q_known.cs
+        ws[0, :] = q_known.prim()
+        gamma = q_known.eos.gamma
+        for p, w in zip(ps[1:], ws[1:]):
+            xi = q_known.v - lr_sign * \
+                 ((p/q_known.p)**((gamma-1)/(2*gamma)) - 
+                 2/(gamma+1)) * (gamma + 1) * q_known.cs / (gamma -1)
+            rho = q_known.rho * (2 / (gamma + 1) - lr_sign *
+                (gamma-1) / ((gamma+1)*q_known.cs) *
+                (q_known.v - xi))**(2 / (gamma-1))
+            v = 2 / (gamma + 1) * (- lr_sign * q_known.cs +
+                0.5 * (gamma-1) * q_known.v + xi)
+            # v = 2 * q_known.cs / (gamma - 1) * ((p_star / q_start.p)**(0.5*(gamma-1)/gamma) - 1)
+            eps = q_known.eos.eps_from_rho_p(rho, p)
+
+            w[:] = [rho, v, eps]
+
+        return ws
 
     def plotting_data(self, t_end):
         # TODO: make the number of points in the rarefaction plot a parameter
@@ -231,10 +184,8 @@ class Rarefaction(EulerWaveSection):
             data = numpy.zeros((0,len(self.q_start.state())))
         else:
             p = numpy.linspace(self.q_start.p, self.q_end.p, 500)
-            w_all = odeint(self.rarefaction_dwdp,
-                           numpy.array([self.q_start.rho, self.q_start.v, self.q_start.eps]),
-                               p, rtol = 1e-12, atol = 1e-10,
-                               args=(self.q_start, self.wavenumber))
+            w_all = self.rarefaction_w(self.q_start, p,
+                                       self.wavenumber)
             data = numpy.zeros((len(p),len(self.q_start.state())))
             xi = numpy.zeros_like(p)
             for i in range(len(p)):
@@ -257,7 +208,7 @@ class Shock(EulerWaveSection):
         "must be in 0, 2"
         # As we use the Shock code for deflagration checks, we can't apply
         # this check
-        #assert(q_start.p <= p_end), "For a shock, p_start <= p_end"
+        assert(q_start.p <= p_end), "For a shock, p_start <= p_end"
         self.type = "Shock"
         self.wavenumber = wavenumber
         lr_sign = self.wavenumber - 1
@@ -274,176 +225,168 @@ class Shock(EulerWaveSection):
         if numpy.allclose(q_start.p, p_end):
             self.trivial = True
             self.q_end = EulerState(q_start.rho, q_start.v, q_start.eps,
-            q_start.eos, label=label)
+                                    q_start.eos, label=label)
             v_shock = q_start.wavespeed(self.wavenumber)
             self.name = ""
         else:
-            j2, rho, eps, dp = self.mass_flux_squared(q_start, p_end,
-                                                 q_start.eos)
-            v_shock, self.q_end = self.post_discontinuity_state(p_end, q_start,
-                                    lr_sign, label, j2,
-                                    rho, eps, dp)
+            v_shock, self.q_end = self.post_discontinuity_state(p_end,
+                                    q_start,
+                                    lr_sign, label)
 
         self.wavespeed = [v_shock]
-
-# TODO: Check that q is correctly initialized across each wave in det, defl.
-class Deflagration(EulerWaveSection):
-
-    def __init__(self, q_start, p_end, wavenumber):
-        """
-        A deflagration.
-        """
-
-        eos_end = q_start.eos.eos_inert
-        t_i = q_start.eos.t_i_from_rho_eps(q_start.rho, q_start.eps)
-
-        self.trivial = False
-        assert(wavenumber in [0, 2]), "wavenumber for a Deflagration "\
-        "must be in 0, 2"
-        assert(q_start.p >= p_end), "For a deflagration, p_start >= p_end"
-#        t_start = q_start.eos['t_from_rho_eps'](q_start.rho, q_start.eps)
-#        assert(t_start >= t_i), "For a deflagration, temperature of start "\
-#        "state must be at least the ignition temperature"
-        # TODO The above check should be true, but the root-find sometimes just
-        # misses. numpy allclose type check?
-        self.type = "Deflagration"
-        self.wavenumber = wavenumber
-        lr_sign = self.wavenumber - 1
-        self.q_start = deepcopy(q_start)
-
-        self.name = r"{\cal WDF}"
-        if self.wavenumber == 0:
-            label = r"\star_L"
-            self.name += r"_{\leftarrow}"
-        else:
-            label = r"\star_R"
-            self.name += r"_{\rightarrow}"
-
-        v_known = q_start.wavespeed(self.wavenumber)
-
-        if numpy.allclose(q_start.p, p_end):
-            self.trivial = True
-            self.q_end = EulerState(q_start.rho, q_start.v, q_start.eps,
-            eos_end, label=label)
-            v_deflagration = v_known
-            self.name = ""
-        else:
-            # This is a single deflagration, so the start state must be at the
-            # reaction temperature already.
-            j2, rho, eps, dp = self.mass_flux_squared(q_start, p_end, eos_end)
-            v_deflagration, q_unknown = self.post_discontinuity_state(p_end, q_start,
-                                    lr_sign, label, j2,
-                                    rho, eps, dp,
-                                    eos_end)
-
-            # If the speed in the unknown state means the characteristics are
-            # not going into the deflagration, then this is an unstable strong
-            # deflagration
-            if (lr_sign*(q_unknown.wavespeed(self.wavenumber) - v_deflagration) < 0):
-                p_cjdf = brentq(self.deflagration_root, (1.0+1e-9)*p_end,
-                                (1.0-1e-9)*q_start.p,
-                                args=(q_start, eos_end, self.wavenumber, label))
-                j2, rho, eps, dp = self.mass_flux_squared(q_start, p_cjdf, eos_end)
-                v_deflagration, q_unknown = self.post_discontinuity_state(p_cjdf, q_start,
-                                        lr_sign, label, j2,
-                                        rho, eps, dp,
-                                        eos_end)
-                self.name = r"{\cal CJDF}"
-                if self.wavenumber == 0:
-                    label = r"\star_L"
-                    self.name += r"_{\leftarrow}"
-                else:
-                    label = r"\star_R"
-                    self.name += r"_{\rightarrow}"
-
-            self.q_end = deepcopy(q_unknown)
-
-        self.wavespeed = [v_deflagration]
-
-class Detonation(EulerWaveSection):
-
-    def __init__(self, q_start, p_end, wavenumber):
-        """
-        A detonation.
-        """
-
-        eos_end = q_start.eos.eos_inert
-        t_i = q_start.eos.t_i_from_rho_eps(q_start.rho, q_start.eps)
-
-        self.trivial = False
-        assert(wavenumber in [0, 2]), "wavenumber for a Detonation "\
-        "must be in 0, 2"
-        assert(q_start.p <= p_end), "For a detonation, p_start <= p_end"
-        #t_start = q_start.eos['t_from_rho_eps'](q_start.rho, q_start.eps)
-        #assert(t_start >= t_i), "For a detonation, temperature of start "\
-        #"state must be at least the ignition temperature"
-        self.type = "Detonation"
-        self.wavenumber = wavenumber
-        lr_sign = self.wavenumber - 1
-        self.q_start = deepcopy(q_start)
-
-        self.name = r"{\cal SDT}"
-        if self.wavenumber == 0:
-            label = r"\star_L"
-            self.name += r"_{\leftarrow}"
-        else:
-            label = r"\star_R"
-            self.name += r"_{\rightarrow}"
-
-        v_known = q_start.wavespeed(self.wavenumber)
-
-        if numpy.allclose(q_start.p, p_end):
-            self.trivial = True
-            self.q_end = EulerState(q_start.rho, q_start.v, q_start.eps,
-            eos_end, label=label)
-            v_detonation = v_known
-            self.name = ""
-        else:
-            # This is a single detonation, so the start state must be at the
-            # reaction temperature already.
-            j2, rho, eps, dp = self.mass_flux_squared(q_start, p_end, eos_end)
-            if j2 < 0:
-                # The single detonation is unphysical - must be unstable weak
-                # detonation. So skip the calculation and make sure the CJ
-                # calculation runs
-#                print("Should be a CJ detonation")
-                q_unknown = deepcopy(q_start)
-                v_detonation = q_unknown.wavespeed(self.wavenumber) + lr_sign
-            else:
-                v_detonation, q_unknown = self.post_discontinuity_state(p_end, q_start,
-                                        lr_sign, label, j2,
-                                        rho, eps, dp,
-                                        eos_end)
-
-            # If the speed in the unknown state means the characteristics are
-            # not going into the detonation, then this is an unstable weak
-            # detonation
-            if (lr_sign*(q_unknown.wavespeed(self.wavenumber) - v_detonation) < 0):
-                pmin = (1.0+1e-9)*min(q_start.p, p_end)
-                pmax = max(q_start.p, p_end)
-                fmin = self.deflagration_root(pmin, q_start, eos_end, self.wavenumber, label)
-                fmax = self.deflagration_root(pmax, q_start, eos_end, self.wavenumber, label)
-                while fmin * fmax > 0:
-                    pmax *= 2.0
-                    fmax = self.deflagration_root(pmax, q_start, eos_end, self.wavenumber, label)
-                p_cjdt = brentq(self.deflagration_root, pmin, pmax,
-                                args=(q_start, eos_end, self.wavenumber, label))
-                j2, rho, eps, dp = self.mass_flux_squared(q_start, p_cjdt, eos_end)
-                v_detonation, q_unknown = self.post_discontinuity_state(p_cjdt, q_start,
-                                       lr_sign, label, j2,
-                                       rho, eps, dp,
-                                       eos_end)
-                self.name = r"{\cal CJDT}"
-                if self.wavenumber == 0:
-                    label = r"\star_L"
-                    self.name += r"_{\leftarrow}"
-                else:
-                    label = r"\star_R"
-                    self.name += r"_{\rightarrow}"
-
-            self.q_end = deepcopy(q_unknown)
-
-        self.wavespeed = numpy.array([v_detonation])
+#
+# # TODO: Check that q is correctly initialized across each wave in det, defl.
+# class Deflagration(EulerWaveSection):
+#
+#     def __init__(self, q_start, p_end, wavenumber):
+#         """
+#         A deflagration.
+#         """
+#
+#         eos_end = q_start.eos.eos_inert
+#         t_i = q_start.eos.t_i_from_rho_eps(q_start.rho, q_start.eps)
+#
+#         self.trivial = False
+#         assert(wavenumber in [0, 2]), "wavenumber for a Deflagration "\
+#         "must be in 0, 2"
+#         assert(q_start.p >= p_end), "For a deflagration, p_start >= p_end"
+# #        t_start = q_start.eos['t_from_rho_eps'](q_start.rho, q_start.eps)
+# #        assert(t_start >= t_i), "For a deflagration, temperature of start "\
+# #        "state must be at least the ignition temperature"
+#         # TODO The above check should be true, but the root-find sometimes just
+#         # misses. numpy allclose type check?
+#         self.type = "Deflagration"
+#         self.wavenumber = wavenumber
+#         lr_sign = self.wavenumber - 1
+#         self.q_start = deepcopy(q_start)
+#
+#         self.name = r"{\cal WDF}"
+#         if self.wavenumber == 0:
+#             label = r"\star_L"
+#             self.name += r"_{\leftarrow}"
+#         else:
+#             label = r"\star_R"
+#             self.name += r"_{\rightarrow}"
+#
+#         v_known = q_start.wavespeed(self.wavenumber)
+#
+#         if numpy.allclose(q_start.p, p_end):
+#             self.trivial = True
+#             self.q_end = EulerState(q_start.rho, q_start.v, q_start.eps,
+#                                     eos_end, label=label)
+#             v_deflagration = v_known
+#             self.name = ""
+#         else:
+#             # This is a single deflagration, so the start state must be at the
+#             # reaction temperature already.
+#             v_deflagration, q_unknown = self.post_discontinuity_state(p_end, q_start,
+#                                     lr_sign, label)
+#
+#             # If the speed in the unknown state means the characteristics are
+#             # not going into the deflagration, then this is an unstable strong
+#             # deflagration
+#             if (lr_sign*(q_unknown.wavespeed(self.wavenumber) - v_deflagration) < 0):
+#                 p_cjdf = brentq(self.deflagration_root, (1.0+1e-9)*p_end,
+#                                 (1.0-1e-9)*q_start.p,
+#                                 args=(q_start, eos_end, self.wavenumber, label))
+#                 v_deflagration, q_unknown = self.post_discontinuity_state(p_cjdf, q_start,
+#                                         lr_sign, label)
+#                 self.name = r"{\cal CJDF}"
+#                 if self.wavenumber == 0:
+#                     label = r"\star_L"
+#                     self.name += r"_{\leftarrow}"
+#                 else:
+#                     label = r"\star_R"
+#                     self.name += r"_{\rightarrow}"
+#
+#             self.q_end = deepcopy(q_unknown)
+#
+#         self.wavespeed = [v_deflagration]
+#
+# class Detonation(EulerWaveSection):
+#
+#     def __init__(self, q_start, p_end, wavenumber):
+#         """
+#         A detonation.
+#         """
+#
+#         eos_end = q_start.eos.eos_inert
+#         t_i = q_start.eos.t_i_from_rho_eps(q_start.rho, q_start.eps)
+#
+#         self.trivial = False
+#         assert(wavenumber in [0, 2]), "wavenumber for a Detonation "\
+#         "must be in 0, 2"
+#         assert(q_start.p <= p_end), "For a detonation, p_start <= p_end"
+#         #t_start = q_start.eos['t_from_rho_eps'](q_start.rho, q_start.eps)
+#         #assert(t_start >= t_i), "For a detonation, temperature of start "\
+#         #"state must be at least the ignition temperature"
+#         self.type = "Detonation"
+#         self.wavenumber = wavenumber
+#         lr_sign = self.wavenumber - 1
+#         self.q_start = deepcopy(q_start)
+#
+#         self.name = r"{\cal SDT}"
+#         if self.wavenumber == 0:
+#             label = r"\star_L"
+#             self.name += r"_{\leftarrow}"
+#         else:
+#             label = r"\star_R"
+#             self.name += r"_{\rightarrow}"
+#
+#         v_known = q_start.wavespeed(self.wavenumber)
+#
+#         if numpy.allclose(q_start.p, p_end):
+#             self.trivial = True
+#             self.q_end = EulerState(q_start.rho, q_start.v, q_start.eps,
+#                                     eos_end, label=label)
+#             v_detonation = v_known
+#             self.name = ""
+#         else:
+#             # This is a single detonation, so the start state must be at the
+#             # reaction temperature already.
+#             j2, rho, eps, dp = self.mass_flux_squared(q_start, p_end, eos_end)
+#             if j2 < 0:
+#                 # The single detonation is unphysical - must be unstable weak
+#                 # detonation. So skip the calculation and make sure the CJ
+#                 # calculation runs
+# #                print("Should be a CJ detonation")
+#                 q_unknown = deepcopy(q_start)
+#                 v_detonation = q_unknown.wavespeed(self.wavenumber) + lr_sign
+#             else:
+#                 v_detonation, q_unknown = self.post_discontinuity_state(p_end, q_start,
+#                                         lr_sign, label, j2,
+#                                         rho, eps, dp,
+#                                         eos_end)
+#
+#             # If the speed in the unknown state means the characteristics are
+#             # not going into the detonation, then this is an unstable weak
+#             # detonation
+#             if lr_sign*(q_unknown.wavespeed(self.wavenumber) - v_detonation) < 0:
+#                 pmin = (1.0+1e-9)*min(q_start.p, p_end)
+#                 pmax = max(q_start.p, p_end)
+#                 fmin = self.deflagration_root(pmin, q_start, eos_end, self.wavenumber, label)
+#                 fmax = self.deflagration_root(pmax, q_start, eos_end, self.wavenumber, label)
+#                 while fmin * fmax > 0:
+#                     pmax *= 2.0
+#                     fmax = self.deflagration_root(pmax, q_start, eos_end, self.wavenumber, label)
+#                 p_cjdt = brentq(self.deflagration_root, pmin, pmax,
+#                                 args=(q_start, eos_end, self.wavenumber, label))
+#                 j2, rho, eps, dp = self.mass_flux_squared(q_start, p_cjdt, eos_end)
+#                 v_detonation, q_unknown = self.post_discontinuity_state(p_cjdt, q_start,
+#                                        lr_sign, label, j2,
+#                                        rho, eps, dp,
+#                                        eos_end)
+#                 self.name = r"{\cal CJDT}"
+#                 if self.wavenumber == 0:
+#                     label = r"\star_L"
+#                     self.name += r"_{\leftarrow}"
+#                 else:
+#                     label = r"\star_R"
+#                     self.name += r"_{\rightarrow}"
+#
+#             self.q_end = deepcopy(q_unknown)
+#
+#         self.wavespeed = numpy.array([v_detonation])
 
 
 
@@ -528,67 +471,68 @@ class EulerWave(Wave):
             return [Shock(q_known, unknown_value, wavenumber)]
         else:
             return [Rarefaction(q_known, unknown_value, wavenumber)]
-
-    @staticmethod
-    def precursor_root(p_0_star, q_known, wavenumber):
-        shock = Shock(q_known, p_0_star, wavenumber)
-        q_precursor = shock.q_end
-        t_precursor = q_precursor.eos.t_from_rho_eps(
-            q_precursor.rho, q_precursor.eps)
-        t_i = q_precursor.eos.t_i_from_rho_eps(q_precursor.rho, q_precursor.eps)
-        return t_precursor - t_i
-
-    @staticmethod
-    def build_reactive_wave_section(q_known, unknown_value, wavenumber):
-        """
-        Object factory for the WaveSection; reactive case
-        """
-
-        t_i = q_known.eos.t_i_from_rho_eps(q_known.rho, q_known.eps)
-
-        if wavenumber == 1:
-            return Contact(q_known, unknown_value, wavenumber)
-        else:
-            wavesections = []
-            if q_known.p < unknown_value:
-                # The detonation wave
-                detonation = Detonation(q_known, unknown_value, wavenumber)
-                wavesections.append(detonation)
-                q_next = deepcopy(detonation.q_end)
-                # Finally, was it a CJ detonation?
-                if q_next.p > unknown_value:
-                    rarefaction = Rarefaction(q_next, unknown_value, wavenumber)
-                    wavesections.append(rarefaction)
-            else:
-                t_known = q_known.eos.t_from_rho_eps(q_known.rho, q_known.eps)
-                t_i = q_known.eos.t_i_from_rho_eps(q_known.rho, q_known.eps)
-                if t_known < t_i: # Need a precursor shock
-                    p_min = unknown_value
-                    p_max = q_known.p
-                    t_min = EulerWave.precursor_root(p_min, q_known, wavenumber)
-                    t_max = EulerWave.precursor_root(p_max, q_known, wavenumber)
-                    assert(t_min < 0)
-
-                    if t_max <= 0:
-                        p_max *= 2
-                        t_max = EulerWave.precursor_root(p_max, q_known, wavenumber)
-
-                    p_0_star = brentq(EulerWave.precursor_root, p_min, p_max,
-                                      args=(q_known, wavenumber))
-                    precursor_shock = Shock(q_known, p_0_star, wavenumber)
-                    wavesections.append(precursor_shock)
-                    q_next = precursor_shock.q_end
-                    q_next.q = q_known.q # No reaction across inert precursor
-                    q_next.eos = q_known.eos
-                else: # No precursor shock
-                    q_next = deepcopy(q_known)
-                # Next, the deflagration wave
-                deflagration = Deflagration(q_next, unknown_value, wavenumber)
-                wavesections.append(deflagration)
-                q_next = deepcopy(deflagration.q_end)
-                # Finally, was it a CJ deflagration?
-                if q_next.p > unknown_value:
-                    rarefaction = Rarefaction(q_next, unknown_value, wavenumber)
-                    wavesections.append(rarefaction)
-
-            return wavesections
+    #
+    # @staticmethod
+    # def precursor_root(p_0_star, q_known, wavenumber):
+    #     shock = Shock(q_known, p_0_star, wavenumber)
+    #     q_precursor = shock.q_end
+    #     t_precursor = q_precursor.eos.t_from_rho_eps(
+    #         q_precursor.rho, q_precursor.eps)
+    #     t_i = q_precursor.eos.t_i_from_rho_eps(q_precursor.rho, q_precursor.eps)
+    #     return t_precursor - t_i
+    #
+    # @staticmethod
+    # def build_reactive_wave_section(q_known, unknown_value, wavenumber):
+    #     """
+    #     Object factory for the WaveSection; reactive case
+    #     """
+    #
+    #     t_i = q_known.eos.t_i_from_rho_eps(q_known.rho, q_known.eps)
+    #
+    #     if wavenumber == 1:
+    #         return Contact(q_known, unknown_value, wavenumber)
+    #     else:
+    #         wavesections = []
+    #         if q_known.p < unknown_value:
+    #             # The detonation wave
+    #             detonation = Detonation(q_known, unknown_value, wavenumber)
+    #             wavesections.append(detonation)
+    #             q_next = deepcopy(detonation.q_end)
+    #             # Finally, was it a CJ detonation?
+    #             if q_next.p > unknown_value:
+    #                 rarefaction = Rarefaction(q_next, unknown_value, wavenumber)
+    #                 wavesections.append(rarefaction)
+    #         else:
+    #             t_known = q_known.eos.t_from_rho_eps(q_known.rho, q_known.eps)
+    #             t_i = q_known.eos.t_i_from_rho_eps(q_known.rho, q_known.eps)
+    #             if t_known < t_i: # Need a precursor shock
+    #                 p_min = unknown_value
+    #                 p_max = q_known.p
+    #                 t_min = EulerWave.precursor_root(p_min, q_known, wavenumber)
+    #                 t_max = EulerWave.precursor_root(p_max, q_known, wavenumber)
+    #                 assert t_min < 0
+    #
+    #                 if t_max <= 0:
+    #                     p_max *= 2
+    #                     t_max = EulerWave.precursor_root(p_max, q_known,
+    #                                                      wavenumber)
+    #
+    #                 p_0_star = brentq(EulerWave.precursor_root, p_min, p_max,
+    #                                   args=(q_known, wavenumber))
+    #                 precursor_shock = Shock(q_known, p_0_star, wavenumber)
+    #                 wavesections.append(precursor_shock)
+    #                 q_next = precursor_shock.q_end
+    #                 q_next.q = q_known.q # No reaction across inert precursor
+    #                 q_next.eos = q_known.eos
+    #             else: # No precursor shock
+    #                 q_next = deepcopy(q_known)
+    #             # Next, the deflagration wave
+    #             deflagration = Deflagration(q_next, unknown_value, wavenumber)
+    #             wavesections.append(deflagration)
+    #             q_next = deepcopy(deflagration.q_end)
+    #             # Finally, was it a CJ deflagration?
+    #             if q_next.p > unknown_value:
+    #                 rarefaction = Rarefaction(q_next, unknown_value, wavenumber)
+    #                 wavesections.append(rarefaction)
+    #
+    #         return wavesections

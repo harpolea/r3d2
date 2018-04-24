@@ -57,6 +57,8 @@ class RiemannProblem(metaclass=ABCMeta):
 
         self.p_star = brentq(self.find_delta_v, pmin_rootfind, pmax_rootfind)
 
+        print(f'p_star = {self.p_star}')
+
         # initialise
         self.state_star_l = None
         self.state_star_r = None
@@ -65,7 +67,7 @@ class RiemannProblem(metaclass=ABCMeta):
         # use concrete implementation
         self.make_waves()
 
-    @abstractmethod
+
     def find_delta_v(self, p_star):
         """
         Find change in speed between left and right states given a guess for a variable in the star state.
@@ -89,7 +91,7 @@ class RiemannProblem(metaclass=ABCMeta):
         Parameters
         ----------
         fig_format : string
-            Provides format to the print_figure function. 
+            Provides format to the print_figure function.
         """
         pass
 

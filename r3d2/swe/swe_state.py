@@ -55,7 +55,8 @@ class SWEState(State):
         if wavenumber == 1:
             return self.v
         elif abs(wavenumber - 1) == 1:
-            return 0.5 * numpy.sqrt(self.phi) * (self.v - 1) * (self.v + 1) * \
+            lr_sign = wavenumber - 1
+            return -lr_sign * 0.5 * numpy.sqrt(self.phi) * (self.v - 1) * (self.v + 1) * \
                 numpy.sqrt(self.phi * self.v**2 + 4) + \
                 0.5 * self.v * (self.phi * self.v**2 - self.phi + 2)
         else:
@@ -69,5 +70,8 @@ class SWEState(State):
         if self.label:
             s += r"_{{{}}} ".format(self.label)
         s += "= "
-        s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \end{{pmatrix}}".format(self.phi, self.v)
+        try:
+            s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \end{{pmatrix}}".format(self.phi, self.v)
+        except TypeError:
+            print(f'printing errored. Phi = {self.phi}, v = {self.v}')
         return s

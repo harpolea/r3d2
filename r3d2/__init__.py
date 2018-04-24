@@ -15,3 +15,4 @@ from .factory import AbstractFactory
 from .euler.factory import EulerFactory
 from .swe.factory import SWEFactory
 from .reactive_rel.factory import ReactiveRelFactory
+from .burgers.factory import BurgersFactory
