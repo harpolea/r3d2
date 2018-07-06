@@ -34,7 +34,7 @@ class State(object):
     """
 
     def __init__(self, rho, v, vt, eps, eos, label=None):
-    
+
         self.rho = rho
         self.v = v
         self.vt = vt
@@ -137,5 +137,5 @@ class State(object):
         """
         IPython or Jupyter repr.
         """
-        s = r"$" + self.latex_string() + r"$"
+        s = r"\begin{equation}" + self.latex_string() + r"\end{equation}"
         return s

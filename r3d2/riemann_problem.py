@@ -25,20 +25,20 @@ class RiemannProblem(object):
 
     Given left and right states (with associated equations of state), this
     contains all the information about the solution.
-    
+
     Parameters
     ----------
-    
+
     state_l : State
         Initial State (variables and equation of state) to the left of the
         interface
     state_r : State
         Initial State (variables and equation of state) to the right of the
         interface
-        
+
     Attributes
     ----------
-    
+
     state_l : State
         Initial State (variables and equation of state) to the left of the
         interface
@@ -158,7 +158,7 @@ class RiemannProblem(object):
         return self._svg_data
 
     def _repr_latex_(self):
-        s = r"$\begin{cases} "
+        s = r"\begin{equation}\begin{cases} "
         s += self.state_l.latex_string()
         s += r",\\ "
         s += self.state_r.latex_string()
@@ -174,5 +174,5 @@ class RiemannProblem(object):
         s += self.state_star_l.latex_string()
         s += r",\\ "
         s += self.state_star_r.latex_string()
-        s += r". \end{cases}$"
+        s += r". \end{cases}\end{equation}"
         return s

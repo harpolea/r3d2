@@ -111,13 +111,13 @@ def mass_flux_squared(q_start, p_end, unknown_eos=None):
 def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
     """
     Find the CJ deflagration.
-    
+
     Find the limiting case between stable and unstable deflagrations. Can also
     be used for the detonation case.
-    
+
     Parameters
     ----------
-    
+
     p_0_star : double
         Pressure to match to.
     q_precursor : State
@@ -128,14 +128,14 @@ def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
         Indicates if this is the left (0), central (1) or right (2) wave
     label : string
         Optional label of the resulting State
-        
+
     Returns
     -------
-    
+
     residual : double
         Residual function to be minimized
     """
-    
+
     lr_sign = wavenumber - 1
     j2, rho, eps, dp = mass_flux_squared(q_precursor, p_0_star, unknown_eos)
     if j2 < 0:
@@ -164,27 +164,27 @@ def deflagration_root(p_0_star, q_precursor, unknown_eos, wavenumber, label):
 def precursor_root(p_0_star, q_known, wavenumber):
     """
     Find the precursor shock.
-    
+
     For a detonation, the temperature needs to be raised across a shock for the
     reaction to take place.
-    
+
     Parameters
     ----------
-    
+
     p_0_star : double
         Pressure to match to.
     q_known : State
         Known State
     wavenumber : int
         Indicates if this is the left (0), central (1) or right (2) wave
-        
+
     Returns
     -------
-    
+
     residual : double
         Residual function to be minimized
     """
-    
+
     shock = Shock(q_known, p_0_star, wavenumber)
     q_precursor = shock.q_end
     t_precursor = q_precursor.eos['t_from_rho_eps'](
@@ -208,12 +208,12 @@ def post_discontinuity_state(p_star, q_start, lr_sign, label, j2, rho, eps, dp,
                              eos_end = None):
     """
     Give the state across a discontinuity.
-    
+
     This code is common to all discontinuities.
-    
+
     Parameters
     ----------
-    
+
     p_star : double
         Post-discontinuity pressure
     q_start : State
@@ -225,17 +225,17 @@ def post_discontinuity_state(p_star, q_start, lr_sign, label, j2, rho, eps, dp,
     j2 : double
         Square of the mass flux across the wave
     rho : double
-        Post-discontinuity density 
+        Post-discontinuity density
     eps : double
         Post-discontinuity specific internal energy
     dp : double
         Jump in pressure across the discontinuity
     eos_end : EOS
         Equation of State on the other side of the discontinuity, if different
-    
+
     Returns
     -------
-    
+
     v_shock : double
         Shock speed
     q_end : State
@@ -269,10 +269,10 @@ class WaveSection(object):
         Pressure in the region of unknown state
     wavenumber : scalar
         Characterises direction of travel of wave
-        
+
     Attributes
     ----------
-    
+
     wavenumber : int
         Indicates if this is the left (0), central (1) or right (2) wave
     wavespeed : list of doubles
@@ -306,14 +306,14 @@ class WaveSection(object):
     def latex_string(self):
         """
         Text description of the WaveSection
-        
+
         Returns
         -------
-        
+
         s : string
             Description of the WaveSection; types and direction, plus speeds.
         """
-        
+
         if self.trivial:
             return ""
         else:
@@ -327,7 +327,7 @@ class WaveSection(object):
             return s
 
     def _repr_latex_(self):
-        s = r"$" + self.latex_string() + r"$"
+        s = r"\begin{equation}" + self.latex_string() + r"\end{equation}"
         return s
 
     def __repr__(self):
@@ -336,10 +336,10 @@ class WaveSection(object):
     def plotting_data(self):
         r"""
         Returns data across the wave section for plotting.
-        
+
         Returns
         -------
-        
+
         xi : numpy array of double
             Characteristic coordinate of data
         data : numpy array of double
@@ -661,7 +661,7 @@ class Detonation(WaveSection):
 def build_inert_wave_section(q_known, unknown_value, wavenumber):
     """
     Object factory for the WaveSection; non-reactive case
-    
+
     Parameters
     ----------
 
@@ -671,10 +671,10 @@ def build_inert_wave_section(q_known, unknown_value, wavenumber):
         Pressure in the region of unknown state
     wavenumber : scalar
         Characterises direction of travel of wave
-       
+
     Returns
     -------
-    
+
     wavesections : list
         List of WaveSections (in this case, one or none)
     """
@@ -689,7 +689,7 @@ def build_inert_wave_section(q_known, unknown_value, wavenumber):
 def build_reactive_wave_section(q_known, unknown_value, wavenumber):
     """
     Object factory for the WaveSection; reactive case
-    
+
     Parameters
     ----------
 
@@ -699,10 +699,10 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
         Pressure in the region of unknown state
     wavenumber : scalar
         Characterises direction of travel of wave
-       
+
     Returns
     -------
-    
+
     wavesections : list
         List of WaveSections
     """
@@ -760,7 +760,7 @@ def build_reactive_wave_section(q_known, unknown_value, wavenumber):
 class Wave(object):
     """
     A wave is a union of wave sections, separating constant states.
-    
+
     In the inert case each wave contains a single wave section. In the reactive
     case the nonlinear waves may contain multiple wave sections. The nonlinear
     (left and right, acoustic) waves are rarefactions or discontinuities. The
@@ -779,10 +779,10 @@ class Wave(object):
         Pressure in the region of unknown state
     wavenumber : scalar
         characterises direction of travel of wave
-        
+
     Attributes
     ----------
-    
+
     wavenumber : int
         Indicates if this is the left (0), central (1) or right (2) wave
     wavespeed : list of doubles
@@ -856,10 +856,10 @@ class Wave(object):
     def plotting_data(self):
         r"""
         Returns data across the wave for plotting.
-        
+
         Returns
         -------
-        
+
         xi_wave : numpy array of double
             Characteristic coordinate of data
         data_wave : numpy array of double
@@ -882,10 +882,10 @@ class Wave(object):
     def wave_sections_latex_string(self):
         """
         Text description of the WaveSections
-        
+
         Returns
         -------
-        
+
         s : string
             Description of the type and direction of each WaveSection
         """
@@ -909,15 +909,15 @@ class Wave(object):
     def latex_string(self):
         """
         Text description of the Wave
-        
+
         Returns
         -------
-        
+
         s : string
             Description of the Wave; types and direction of WaveSections, plus
             speeds.
         """
-        
+
         s = self.wave_sections_latex_string()
         speeds = []
         sections = deepcopy(self.wave_sections)
@@ -939,5 +939,5 @@ class Wave(object):
         return s
 
     def _repr_latex_(self):
-        s = r"$" + self.latex_string() + r"$"
+        s = r"\begin{equation}" + self.latex_string() + r"\end{equation}"
         return s
