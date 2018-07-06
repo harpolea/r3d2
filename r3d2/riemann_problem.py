@@ -152,10 +152,10 @@ class RiemannProblem(object):
             self._png_data = self._figure_data('png')
         return self._png_data
 
-    def _repr_svg_(self):
-        if self._svg_data is None:
-            self._svg_data = self._figure_data('svg')
-        return self._svg_data
+    # def _repr_svg_(self):
+    #     if self._svg_data is None:
+    #         self._svg_data = self._figure_data('svg')
+    #     return self._svg_data
 
     def _repr_latex_(self):
         s = r"\begin{equation}\begin{cases} "
