@@ -16,7 +16,7 @@ from scipy.optimize import brentq
 from matplotlib import pyplot
 from IPython.core.pylabtools import print_figure
 
-from .wave import Wave
+from .wave import Wave, UnphysicalSolution
 
 
 class RiemannProblem(object):
@@ -68,8 +68,11 @@ class RiemannProblem(object):
 
         def find_delta_v(p_star_guess):
 
-            wave_l = Wave(self.state_l, p_star_guess, 0)
-            wave_r = Wave(self.state_r, p_star_guess, 2)
+            try:
+                wave_l = Wave(self.state_l, p_star_guess, 0)
+                wave_r = Wave(self.state_r, p_star_guess, 2)
+            except UnphysicalSolution:
+                return 1
 
             return wave_l.q_r.v - wave_r.q_l.v
 
@@ -95,8 +98,12 @@ class RiemannProblem(object):
         wave_r = Wave(self.state_r, self.p_star, 2)
         self.state_star_l = wave_l.q_r
         self.state_star_r = wave_r.q_l
-        self.waves = [wave_l,
-                      Wave(self.state_star_l, self.state_star_r, 1), wave_r]
+        try:
+            self.waves = [wave_l,
+                          Wave(self.state_star_l, self.state_star_r, 1), wave_r]
+        except AssertionError as error:
+            print(error)
+            raise UnphysicalSolution("There is no physical solution")
 
     def _figure_data(self, format):
         fig, axs = pyplot.subplots(3,3, figsize=(10,6))
