@@ -3,36 +3,38 @@
 Created on Mon Feb 15 11:26:41 2016
 
 @author: ih3
-"""
 
+State class
+
+The fluid State (key variables plus equation of state) at a point.
+"""
+from __future__ import division
 import numpy
 
 class State(object):
-    """
+    r"""
     A state at a point. Initialized with the rest mass density, velocity, and
     specific internal energy, as well as an equation of state.
+
+    Parameters
+    ----------
+
+    rho : scalar
+        Rest mass density :math:`\rho_0`
+    v : scalar
+        Velocity component in the normal (:math:`x`) direction :math:`v_x`
+    v_t : scalar
+        Velocity component tangential to :math:`x` :math:`v_t`
+    eps : scalar
+        Specific internal energy :math:`\epsilon`
+    eos : dictionary
+        Equation of State
+    label : string
+        Label for output purposes.
     """
 
     def __init__(self, rho, v, vt, eps, eos, label=None):
-        r"""
-        Constructor
 
-        Parameters
-        ----------
-
-        rho : scalar
-            Rest mass density :math:`\rho_0`
-        v : scalar
-            Velocity component in the normal (:math:`x`) direction :math:`v_x`
-        v_t : scalar
-            Velocity component tangential to :math:`x` :math:`v_t`
-        eps : scalar
-            Specific internal energy :math:`\epsilon`
-        eos : dictionary
-            Equation of State
-        label : string
-            Label for output purposes.
-        """
         self.rho = rho
         self.v = v
         self.vt = vt
@@ -135,5 +137,5 @@ class State(object):
         """
         IPython or Jupyter repr.
         """
-        s = r"$" + self.latex_string() + r"$"
+        s = r"\begin{equation}" + self.latex_string() + r"\end{equation}"
         return s

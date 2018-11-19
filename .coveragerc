@@ -9,4 +9,9 @@ exclude_lines =
     def _repr_svg_
     def _figure_data
     def plotting_data
-
+    def _rarefaction
+    def _shock
+    def _deflagration
+    def _detonation
+    def _find_pre_ignition
+    def plot_P_v

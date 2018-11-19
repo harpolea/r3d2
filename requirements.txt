@@ -4,4 +4,3 @@ scipy>=0.10
 IPython>=3
 nbsphinx
 ipykernel
-setuptools>=18.5

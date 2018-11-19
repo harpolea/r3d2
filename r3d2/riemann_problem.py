@@ -3,8 +3,13 @@
 Created on Mon Feb 15 11:23:51 2016
 
 @author: ih3
-"""
 
+Riemann Problem class.
+
+Top level solution and plotting functions for the solution of a relativistic,
+reactive Riemann Problem.
+"""
+from __future__ import division
 import numpy
 from scipy.optimize import brentq
 
@@ -16,16 +21,43 @@ from .wave import Wave
 
 class RiemannProblem(object):
     """
-    This is a more general Riemann Problem class.
+    A general Riemann Problem class.
 
-    Allows for different EOSs on both sides (as required for burning problems).
-    Uses the State class.
+    Given left and right states (with associated equations of state), this
+    contains all the information about the solution.
+
+    Parameters
+    ----------
+
+    state_l : State
+        Initial State (variables and equation of state) to the left of the
+        interface
+    state_r : State
+        Initial State (variables and equation of state) to the right of the
+        interface
+
+    Attributes
+    ----------
+
+    state_l : State
+        Initial State (variables and equation of state) to the left of the
+        interface
+    state_r : State
+        Initial State (variables and equation of state) to the right of the
+        interface
+    state_star_l : State
+        State (variables and equation of state) between the left Wave and the
+        central, contact Wave
+    state_star_r : State
+        State (variables and equation of state) between the right Wave and the
+        central, contact Wave
+    waves : list of Waves
+        List of the three Waves separating the constant states
+    p_star : double
+        The pressure in the star States.
     """
 
     def __init__(self, state_l, state_r):
-        """
-        Constructor
-        """
 
         # Cache for plot
         self._png_data = None
@@ -57,7 +89,7 @@ class RiemannProblem(object):
             find_delta_v(pmax_rootfind)
         except ValueError:
             pmax_rootfind = pmax
-        
+
         self.p_star = brentq(find_delta_v, pmin_rootfind, pmax_rootfind)
         wave_l = Wave(self.state_l, self.p_star, 0)
         wave_r = Wave(self.state_r, self.p_star, 2)
@@ -67,7 +99,7 @@ class RiemannProblem(object):
                       Wave(self.state_star_l, self.state_star_r, 1), wave_r]
 
     def _figure_data(self, format):
-        fig, axs = pyplot.subplots(3,3)
+        fig, axs = pyplot.subplots(3,3, figsize=(10,6))
         ax = axs[0,0]
         for w in self.waves[0], self.waves[2]:
             if len(w.wavespeed)==1:
@@ -120,13 +152,13 @@ class RiemannProblem(object):
             self._png_data = self._figure_data('png')
         return self._png_data
 
-    def _repr_svg_(self):
-        if self._svg_data is None:
-            self._svg_data = self._figure_data('svg')
-        return self._svg_data
+    # def _repr_svg_(self):
+    #     if self._svg_data is None:
+    #         self._svg_data = self._figure_data('svg')
+    #     return self._svg_data
 
     def _repr_latex_(self):
-        s = r"$\begin{cases} "
+        s = r"\begin{equation}\begin{cases} "
         s += self.state_l.latex_string()
         s += r",\\ "
         s += self.state_r.latex_string()
@@ -142,5 +174,5 @@ class RiemannProblem(object):
         s += self.state_star_l.latex_string()
         s += r",\\ "
         s += self.state_star_r.latex_string()
-        s += r". \end{cases}$"
+        s += r". \end{cases}\end{equation}"
         return s

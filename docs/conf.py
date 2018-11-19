@@ -43,6 +43,7 @@ sys.path.insert(0, os.path.abspath('..'))
 extensions = [
     'nbsphinx',
     'sphinx.ext.mathjax', 'sphinx.ext.autodoc',
+    'IPython.sphinxext.ipython_console_highlighting',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -1,4 +1,4 @@
-R3D2
+R3D2 
 ====
 
 .. image:: https://travis-ci.org/harpolea/r3d2.svg?branch=master

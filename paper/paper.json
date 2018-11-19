@@ -1,0 +1,30 @@
+{
+  "@context": "https://raw.githubusercontent.com/mbjones/codemeta/master/codemeta.jsonld",
+  "@type": "Code",
+  "author": [
+    {
+    "@id": "http://orcid.org/0000-0002-1530-781X",
+    "@type": "Person",
+    "email": "alice.harpole@soton.ac.uk",
+    "name": "Alice Harpole",
+    "affiliation": "University of Southampton"
+    },
+    {
+      "@id": "http://orcid.org/0000-0003-4805-0309",
+      "@type": "Person",
+      "email": "I.Hawke@soton.ac.uk",
+      "name": "Ian Hawke",
+      "affiliation": "University of Southampton"
+    },
+  ],
+  "identifier": "http://dx.doi.org/10.5281/zenodo.51096",
+  "codeRepository": "https://github.com/harpolea/r3d2",
+  "datePublished": "2016-05-06",
+  "dateModified": "2016-05-06",
+  "dateCreated": "2016-05-06",
+  "description": "Relativistic Reactive Riemann problem solver for Deflagrations and Detonations",
+  "keywords": "hydrodynamics, Riemann problem, relativity, reactions",
+  "license": "MIT",
+  "title": "R3D2",
+  "version": "v1.0"
+}
