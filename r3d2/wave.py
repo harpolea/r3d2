@@ -571,6 +571,8 @@ class Deflagration(WaveSection):
 
             self.q_end = deepcopy(q_unknown)
 
+        if q_start.cs - self.q_end.cs < 0:
+            raise UnphysicalSolution("There is no physical solution")
 
         self.wavespeed = [v_deflagration]
 
@@ -941,3 +943,7 @@ class Wave(object):
     def _repr_latex_(self):
         s = r"\begin{equation}" + self.latex_string() + r"\end{equation}"
         return s
+
+class UnphysicalSolution(Exception):
+    """ Solution to the problem is unphysical """
+    pass
