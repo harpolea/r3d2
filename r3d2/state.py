@@ -11,6 +11,7 @@ The fluid State (key variables plus equation of state) at a point.
 from __future__ import division
 import numpy
 
+
 class State(object):
     r"""
     A state at a point. Initialized with the rest mass density, velocity, and
@@ -60,8 +61,8 @@ class State(object):
         r"""
         Return all variables :math:`\rho, v_x, v_t, \epsilon, p, W, h, c_s`.
         """
-        return numpy.array([self.rho, self.v, self.vt, self.eps, self.p,\
-        self.W_lorentz, self.h, self.cs])
+        return numpy.array([self.rho, self.v, self.vt, self.eps, self.p,
+                            self.W_lorentz, self.h, self.cs])
 
     def wavespeed(self, wavenumber):
         """
@@ -80,7 +81,7 @@ class State(object):
             s = wavenumber - 1
             term1 = self.v * (1.0 - self.cs**2)
             term2 = (1.0 - self.v**2 - self.vt**2) * (1.0 - self.v**2 -
-            self.vt**2 * self.cs**2)
+                     self.vt**2 * self.cs**2)
             term3 = 1.0 - (self.v**2 + self.vt**2) * self.cs**2
             return (term1 + s * self.cs * numpy.sqrt(term2)) / term3
         else:
@@ -126,11 +127,11 @@ class State(object):
             s += r"_{{{}}} ".format(self.label)
         s += "= "
         if self.q:
-            s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(\
-            self.rho, self.v, self.vt, self.eps, self.q)
+            s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(
+                self.rho, self.v, self.vt, self.eps, self.q)
         else:
-            s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(\
-            self.rho, self.v, self.vt, self.eps)
+            s += r"\begin{{pmatrix}} {:.4f} \\ {:.4f} \\ {:.4f} \\ {:.4f} \end{{pmatrix}}".format(
+                self.rho, self.v, self.vt, self.eps)
         return s
 
     def _repr_latex_(self):
